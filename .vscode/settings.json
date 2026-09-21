@@ -1,0 +1,9 @@
+{
+    "java.project.sourcePaths": [
+        "UVGqueue-login-funcional/UVGqueue"
+    ],
+    "java.project.outputPath": "bin",
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar"
+    ]
+}
