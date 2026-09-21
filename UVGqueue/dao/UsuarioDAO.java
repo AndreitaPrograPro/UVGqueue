@@ -1,117 +1,63 @@
 package dao;
-
-import database.Databaseconnection;
-import model.Usuario;
-
+import database.*;
+import model.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class UsuarioDAO {
-
-    // Registrar un nuevo usuario
-    public boolean registrar(Usuario usuario) {
-
-        String sql = """
-                INSERT INTO usuario
-                (nombre, correo, contrasena, rol)
-                VALUES (?, ?, ?, ?)
-                """;
-
-        try (
-            Connection connection = Databaseconnection.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)
-        ) {
-
+public class UsuarioDAO{
+    public boolean registrar(Usuario usuario){
+        String sql = "INSERT INTO usuario(nombre, correo, contrasena_hash, tipo) VALUES(?,?,?,?)";
+        try(Connection connection = Databaseconnection.getConnection();
+        PreparedStatement statement = connection.prepareStatement(sql)){
             statement.setString(1, usuario.getNombre());
             statement.setString(2, usuario.getCorreo());
-            statement.setString(3, usuario.getContrasena());
-            statement.setString(4, usuario.getRol());
-
-            return statement.executeUpdate() > 0;
-
+            statement.setString(3, usuario.getContrasenaHash());
+            statement.setString(4, usuario.getTipo().name());
+            return statement.executeUpdate() >0;
         } catch (SQLException e) {
+            System.out.println("No fue posible buscar al usuario");
             e.printStackTrace();
             return false;
         }
     }
-
-
-    // Buscar usuario por correo
-    public Usuario buscarPorCorreo(String correo) {
-
-        String sql = """
-                SELECT *
-                FROM usuario
-                WHERE correo = ?
-                """;
-
-        try (
-            Connection connection = Databaseconnection.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)
-        ) {
-
-            statement.setString(1, correo);
-
-            try (ResultSet resultSet = statement.executeQuery()) {
-
-                if (resultSet.next()) {
-
-                    return new Usuario(
-                        resultSet.getInt("id_usuario"),
-                        resultSet.getString("nombre"),
-                        resultSet.getString("correo"),
-                        resultSet.getString("contrasena"),
-                        resultSet.getString("rol")
-                    );
+    public Usuario buscarPorCorreo(String correo){
+        String sql = "SELECT id_usuario, nombre, correo, contrasena_hash, tipo FROM usuario WHERE LOWER(correo) = LOWER(?)";
+        try(Connection connection = Databaseconnection.getConnection();
+        PreparedStatement statement = connection.prepareStatement(sql)){
+            statement.setString(1,correo);
+            try(ResultSet resultSet = statement.executeQuery()){
+                if(resultSet.next()){
+                    return crearUsuario(resultSet);
                 }
             }
-
         } catch (SQLException e) {
+            System.out.println("No fue posible buscar al usuario");
             e.printStackTrace();
         }
-
         return null;
     }
-
-
-    // Validar login
-    public Usuario iniciarSesion(String correo, String contrasena) {
-
-        String sql = """
-                SELECT *
-                FROM usuario
-                WHERE correo = ?
-                AND contrasena = ?
-                """;
-
-        try (
-            Connection connection = Databaseconnection.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)
-        ) {
-
-            statement.setString(1, correo);
-            statement.setString(2, contrasena);
-
-            try (ResultSet resultSet = statement.executeQuery()) {
-
-                if (resultSet.next()) {
-
-                    return new Usuario(
-                        resultSet.getInt("id_usuario"),
-                        resultSet.getString("nombre"),
-                        resultSet.getString("correo"),
-                        resultSet.getString("contrasena"),
-                        resultSet.getString("rol")
-                    );
+    public Usuario buscarPorNombre(String nombre){
+        String sql ="SELECT id_usuario, nombre, correo, contrasena_hash, tipo FROM usuario WHERE LOWER(nombre) = LOWER(?)";
+        try(Connection connection = Databaseconnection.getConnection();
+        PreparedStatement statement = connection.prepareStatement(sql)){
+            statement.setString(1,nombre);
+            try(ResultSet resultSet = statement.executeQuery()){
+                if(resultSet.next()){
+                    return crearUsuario(resultSet);
                 }
             }
-
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("No fue posible buscar al usuario");
+            e.printStackTrace();    
         }
-
         return null;
+    }
+    private Usuario crearUsuario(ResultSet resultSet) throws SQLException{
+        TipoUsuario tipo = TipoUsuario.valueOf(resultSet.getString("tipo"));
+        return new Usuario(resultSet.getInt("id_usuario"),
+    resultSet.getString("nombre"), resultSet.getString("correo"),
+    resultSet.getString("contrasena_hash"),tipo);
     }
 }

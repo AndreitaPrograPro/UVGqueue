@@ -1,49 +1,36 @@
 package model;
+import java.util.ArrayList;
 
-import java.time.LocalTime;
-
-public class Restaurante {
-
-    private int idRestaurante;
+public class Restaurante{
     private String nombre;
+    private EstadoRestaurante estado;
     private String ubicacion;
-    private LocalTime horaApertura;
-    private LocalTime horaCierre;
-    private boolean activo;
-
-    public Restaurante(int idRestaurante, String nombre, String ubicacion,
-                       LocalTime horaApertura, LocalTime horaCierre,
-                       boolean activo) {
-
-        this.idRestaurante = idRestaurante;
+    private ArrayList<Reporte> reportes;
+    public Restaurante (String nombre, String ubicacion, EstadoRestaurante estado){
         this.nombre = nombre;
         this.ubicacion = ubicacion;
-        this.horaApertura = horaApertura;
-        this.horaCierre = horaCierre;
-        this.activo = activo;
+        this.estado = estado;
+        this.reportes = new ArrayList<>();
     }
-
-    public int getIdRestaurante() {
-        return idRestaurante;
-    }
-
-    public String getNombre() {
+    public String getNombre(){
         return nombre;
     }
-
-    public String getUbicacion() {
+    public String getUbicacion(){
         return ubicacion;
     }
-
-    public LocalTime getHoraApertura() {
-        return horaApertura;
+    public EstadoRestaurante getEstado(){
+        return estado;
+    }
+    public ArrayList<Reporte> getReportes(){
+        return new ArrayList<>(reportes);
+    }
+    public void setEstado(EstadoRestaurante estado){
+        this.estado = estado;
+    }
+    public void agregarReporte(Reporte reporte){
+        if (reporte!=null){
+            reportes.add(reporte);
+        }
     }
 
-    public LocalTime getHoraCierre() {
-        return horaCierre;
-    }
-
-    public boolean isActivo() {
-        return activo;
-    }
 }
