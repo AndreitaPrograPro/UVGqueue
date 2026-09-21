@@ -1,0 +1,8 @@
+{
+    "java.project.sourcePaths": [
+        "UVGqueue"
+    ],
+    "java.project.referencedLibraries": [
+        "UVGqueue\\lib\\mariadb-java-client-3.5.10.jar"
+    ]
+}

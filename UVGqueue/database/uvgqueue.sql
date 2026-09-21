@@ -1,7 +1,8 @@
-CREATE DATABASE IF NOT EXISTS uvgqueue;
+CREATE DATABASE IF NOT EXISTS uvgqueue
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
 
 USE uvgqueue;
-
 
 -- =========================================
 -- TABLA USUARIO
@@ -9,16 +10,14 @@ USE uvgqueue;
 
 CREATE TABLE IF NOT EXISTS usuario (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
     correo VARCHAR(150) NOT NULL UNIQUE,
-    contrasena VARCHAR(255) NOT NULL,
-    rol ENUM(
+    contrasena_hash VARCHAR(255) NOT NULL,
+    tipo ENUM(
         'ESTUDIANTE',
-        'ENCARGADO',
-        'ADMIN'
-    ) NOT NULL
+        'COLABORADOR'
+    ) NOT NULL DEFAULT 'ESTUDIANTE'
 );
-
 
 -- =========================================
 -- TABLA RESTAURANTE
@@ -26,74 +25,74 @@ CREATE TABLE IF NOT EXISTS usuario (
 
 CREATE TABLE IF NOT EXISTS restaurante (
     id_restaurante INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
     ubicacion VARCHAR(150) NOT NULL,
-    hora_apertura TIME NOT NULL,
-    hora_cierre TIME NOT NULL,
-    activo BOOLEAN NOT NULL DEFAULT TRUE
+    estado ENUM(
+        'ABIERTO',
+        'CERRADO'
+    ) NOT NULL DEFAULT 'CERRADO'
 );
 
-
 -- =========================================
--- TABLA FILA
+-- TABLA REPORTE
 -- =========================================
 
-CREATE TABLE IF NOT EXISTS fila (
-    id_fila INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS reporte (
+    id_reporte INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
     id_restaurante INT NOT NULL,
-    estado ENUM(
-        'ABIERTA',
-        'PAUSADA',
-        'CERRADA'
-    ) NOT NULL DEFAULT 'CERRADA',
-    fecha DATE NOT NULL,
+    cantidad_personas INT NOT NULL,
+    tiempo_espera INT NOT NULL,
+    fecha_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (id_restaurante)
+    CONSTRAINT chk_cantidad_personas
+        CHECK (cantidad_personas >= 0),
+
+    CONSTRAINT chk_tiempo_espera
+        CHECK (tiempo_espera >= 0),
+
+    CONSTRAINT fk_reporte_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario),
+
+    CONSTRAINT fk_reporte_restaurante
+        FOREIGN KEY (id_restaurante)
         REFERENCES restaurante(id_restaurante)
 );
 
-
 -- =========================================
--- TABLA TURNO
+-- TABLA FAVORITO
 -- =========================================
 
-CREATE TABLE IF NOT EXISTS turno (
-    id_turno INT AUTO_INCREMENT PRIMARY KEY,
-    id_fila INT NOT NULL,
+CREATE TABLE IF NOT EXISTS favorito (
     id_usuario INT NOT NULL,
-    numero_turno INT NOT NULL,
+    id_restaurante INT NOT NULL,
 
-    estado ENUM(
-        'ESPERANDO',
-        'LLAMADO',
-        'ATENDIDO',
-        'AUSENTE',
-        'CANCELADO'
-    ) NOT NULL DEFAULT 'ESPERANDO',
+    PRIMARY KEY (id_usuario, id_restaurante),
 
-    fecha_hora DATETIME
-        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (id_fila)
-        REFERENCES fila(id_fila),
-
-    FOREIGN KEY (id_usuario)
+    CONSTRAINT fk_favorito_usuario
+        FOREIGN KEY (id_usuario)
         REFERENCES usuario(id_usuario)
-);
+        ON DELETE CASCADE,
 
+    CONSTRAINT fk_favorito_restaurante
+        FOREIGN KEY (id_restaurante)
+        REFERENCES restaurante(id_restaurante)
+        ON DELETE CASCADE
+);
 
 -- =========================================
 -- RESTAURANTES INICIALES
 -- =========================================
 
-INSERT INTO restaurante
-(nombre, ubicacion, hora_apertura, hora_cierre, activo)
+INSERT IGNORE INTO restaurante
+(nombre, ubicacion, estado)
 VALUES
-('Gitane', 'Cafeteria CIT', '07:00:00', '17:00:00', TRUE),
-('GoGreen', 'Cafeteria CIT', '07:00:00', '17:00:00', TRUE),
-('Mixtas Frankfourt', 'Cafeteria CIT', '07:00:00', '17:00:00', TRUE),
-('Panitos', 'Cafeteria CIT', '07:00:00', '17:00:00', TRUE),
-('&Cafe', 'CIT 6', '07:00:00', '17:00:00', TRUE),
-('Barista', 'Patio CIT', '07:00:00', '17:00:00', TRUE),
-('Golden Harvest', 'Puerta 6', '07:00:00', '17:00:00', TRUE),
-('Sarita', 'Edificio F', '07:00:00', '17:00:00', TRUE);
+('Gitane', 'Cafetería CIT', 'ABIERTO'),
+('GoGreen', 'Cafetería CIT', 'ABIERTO'),
+('Mixtas Frankfurt', 'Cafetería CIT', 'ABIERTO'),
+('Panitos', 'Cafetería CIT', 'ABIERTO'),
+('&Cafe', 'CIT 6', 'ABIERTO'),
+('Barista', 'Patio CIT', 'ABIERTO'),
+('Golden Harvest', 'Puerta 6', 'ABIERTO'),
+('Sarita', 'Edificio F', 'ABIERTO');
