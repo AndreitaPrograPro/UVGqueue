@@ -11,7 +11,8 @@ public class Estilos {
     public static final Color VERDE_SUAVE = new Color(190, 222, 207);
     public static final Color FONDO = new Color(245, 247, 248);
     public static final Color TEXTO = new Color(33, 37, 41);
-    public static final Color TEXTO_SECUNDARIO = new Color(108, 117, 125);
+    public static final Color TEXTO_SECUNDARIO =
+            new Color(108, 117, 125);
     public static final Color BORDE = new Color(220, 224, 230);
     public static final Color ERROR = new Color(220, 53, 69);
 
@@ -24,14 +25,22 @@ public class Estilos {
         boton.setForeground(Color.WHITE);
         boton.setBackground(VERDE_MEDIO);
         boton.setFocusPainted(false);
-        boton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        boton.setCursor(
+                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        );
         boton.setPreferredSize(new Dimension(110, 42));
     }
 
-    public static void mostrarProximamente(Component padre, String modulo) {
-        JOptionPane.showMessageDialog(padre, 
-            "El módulo de '" + modulo + "' estará disponible próximamente.", 
-            "Próximamente", 
-            JOptionPane.INFORMATION_MESSAGE);
+    public static void mostrarProximamente(
+            Component padre,
+            String modulo
+    ) {
+        JOptionPane.showMessageDialog(
+                padre,
+                "El módulo de '" + modulo
+                        + "' estará disponible próximamente.",
+                "Próximamente",
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 }

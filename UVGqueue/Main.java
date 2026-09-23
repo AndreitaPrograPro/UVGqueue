@@ -9,6 +9,8 @@ public class Main {
             LoginView loginView = new LoginView();
             new UsuarioController(loginView);
             loginView.setVisible(true);
+
         });
+
     }
 } 
