@@ -4,52 +4,44 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import model.EstadoRestaurante;
 import model.Restaurante;
+import java.util.HashMap;
+import java.util.Map;
 
 public class EstudianteFrame extends JFrame {
-
     private final JPanel panelTarjetas =
             new JPanel(new GridLayout(0, 2, 18, 18));
-
     private final JTextField campoBusqueda = new JTextField();
-
     private final JComboBox<String> filtroEstado =
             new JComboBox<>(new String[]{
-                "Todos",
-                "Abiertos",
-                "Cerrados"
+                "Todos", "Abiertos", "Cerrados"
             });
-
     private final JLabel etiquetaSaludo =
             new JLabel("Hola, estudiante");
-
     private final JLabel etiquetaResumen =
             new JLabel("0 restaurantes");
-
     private final JButton botonActualizar =
             new JButton("Actualizar");
-
-    private List<Restaurante> restaurantes =
-            new ArrayList<>();
-
+    private List<Restaurante> restaurantes = new ArrayList<>();
+    private Consumer<Restaurante> accionReportar;
+    private Map<String, Integer> tiemposPromedio = new HashMap<>();
     public EstudianteFrame() {
         this("estudiante");
     }
-
     public EstudianteFrame(String nombreUsuario) {
         etiquetaSaludo.setText("Hola, " + nombreUsuario);
         configurarVentana();
         construirInterfaz();
         registrarEventos();
     }
-
     private void configurarVentana() {
         setTitle("UVGqueue - Restaurantes");
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(980, 650));
         setSize(1180, 760);
         setLocationRelativeTo(null);
@@ -73,16 +65,19 @@ public class EstudianteFrame extends JFrame {
                 new BoxLayout(lateral, BoxLayout.Y_AXIS)
         );
 
-        JLabel logo = new JLabel("UVGqueue");
-        logo.setForeground(Color.WHITE);
-        logo.setFont(Estilos.fuente(Font.BOLD, 25));
-        logo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel logo = crearEtiqueta(
+                "UVGqueue",
+                Color.WHITE,
+                Font.BOLD,
+                25
+        );
 
-        JLabel lema = new JLabel("Tu tiempo importa");
-        lema.setForeground(new Color(190, 222, 207));
-        lema.setFont(Estilos.fuente(Font.PLAIN, 12));
-        lema.setAlignmentX(Component.LEFT_ALIGNMENT);
-
+        JLabel lema = crearEtiqueta(
+                "Tu tiempo importa",
+                new Color(190, 222, 207),
+                Font.PLAIN,
+                12
+        );
         lateral.add(logo);
         lateral.add(Box.createVerticalStrut(4));
         lateral.add(lema);
@@ -93,22 +88,33 @@ public class EstudianteFrame extends JFrame {
         lateral.add(Box.createVerticalStrut(10));
         lateral.add(crearBotonMenu("Mis reportes", false));
         lateral.add(Box.createVerticalGlue());
-
-        JLabel version = new JLabel("UVGqueue 2026");
-        version.setForeground(new Color(151, 194, 174));
-        version.setFont(Estilos.fuente(Font.PLAIN, 11));
-        version.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lateral.add(version);
+        lateral.add(crearEtiqueta(
+                "UVGqueue 2026",
+                new Color(151, 194, 174),
+                Font.PLAIN,
+                11
+        ));
 
         return lateral;
     }
 
+    private JLabel crearEtiqueta(
+            String texto,
+            Color color,
+            int estilo,
+            int tamaño
+    ) {
+        JLabel etiqueta = new JLabel(texto);
+        etiqueta.setForeground(color);
+        etiqueta.setFont(Estilos.fuente(estilo, tamaño));
+        etiqueta.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return etiqueta;
+    }
     private JButton crearBotonMenu(
             String texto,
             boolean seleccionado
     ) {
         JButton boton = new JButton(texto);
-
         boton.setHorizontalAlignment(SwingConstants.LEFT);
         boton.setMaximumSize(
                 new Dimension(Integer.MAX_VALUE, 44)
@@ -140,23 +146,16 @@ public class EstudianteFrame extends JFrame {
         contenido.setBorder(
                 BorderFactory.createEmptyBorder(28, 34, 30, 34)
         );
-
-        contenido.add(
-                crearEncabezado(),
-                BorderLayout.NORTH
-        );
+        contenido.add(crearEncabezado(), BorderLayout.NORTH);
 
         panelTarjetas.setBackground(Estilos.FONDO);
 
-        JScrollPane scroll =
-                new JScrollPane(panelTarjetas);
-
+        JScrollPane scroll = new JScrollPane(panelTarjetas);
         scroll.setBorder(null);
         scroll.getViewport().setBackground(Estilos.FONDO);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
 
         contenido.add(scroll, BorderLayout.CENTER);
-
         return contenido;
     }
 
@@ -183,11 +182,12 @@ public class EstudianteFrame extends JFrame {
                 Estilos.TEXTO_SECUNDARIO
         );
 
-        JLabel titulo =
-                new JLabel("¿Dónde quieres comer hoy?");
-
-        titulo.setFont(Estilos.fuente(Font.BOLD, 28));
-        titulo.setForeground(Estilos.TEXTO);
+        JLabel titulo = crearEtiqueta(
+                "¿Dónde quieres comer hoy?",
+                Estilos.TEXTO,
+                Font.BOLD,
+                28
+        );
 
         titulos.add(etiquetaSaludo);
         titulos.add(Box.createVerticalStrut(3));
@@ -211,7 +211,6 @@ public class EstudianteFrame extends JFrame {
         campoBusqueda.setToolTipText(
                 "Buscar por nombre o ubicación"
         );
-
         campoBusqueda.setBorder(
                 BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(
@@ -227,15 +226,11 @@ public class EstudianteFrame extends JFrame {
                 new Dimension(125, 42)
         );
 
-        Estilos.estilizarBotonPrincipal(
-                botonActualizar
-        );
+        Estilos.estilizarBotonPrincipal(botonActualizar);
 
         JPanel acciones =
                 new JPanel(new FlowLayout(
-                        FlowLayout.RIGHT,
-                        10,
-                        0
+                        FlowLayout.RIGHT, 10, 0
                 ));
 
         acciones.setOpaque(false);
@@ -282,9 +277,7 @@ public class EstudianteFrame extends JFrame {
     public void mostrarRestaurantes(
             List<Restaurante> restaurantes
     ) {
-        this.restaurantes =
-                new ArrayList<>(restaurantes);
-
+        this.restaurantes = new ArrayList<>(restaurantes);
         aplicarFiltros();
     }
 
@@ -296,17 +289,18 @@ public class EstudianteFrame extends JFrame {
         String filtro =
                 (String) filtroEstado.getSelectedItem();
 
-        List<Restaurante> visibles =
-                new ArrayList<>();
+        List<Restaurante> visibles = new ArrayList<>();
 
         for (Restaurante restaurante : restaurantes) {
+            String nombre = restaurante.getNombre()
+                    .toLowerCase(Locale.ROOT);
+
+            String ubicacion = restaurante.getUbicacion()
+                    .toLowerCase(Locale.ROOT);
+
             boolean coincideTexto =
-                    restaurante.getNombre()
-                            .toLowerCase(Locale.ROOT)
-                            .contains(texto)
-                    || restaurante.getUbicacion()
-                            .toLowerCase(Locale.ROOT)
-                            .contains(texto);
+                    nombre.contains(texto)
+                    || ubicacion.contains(texto);
 
             boolean abierto =
                     restaurante.getEstado()
@@ -331,9 +325,7 @@ public class EstudianteFrame extends JFrame {
         panelTarjetas.removeAll();
 
         for (Restaurante restaurante : visibles) {
-            panelTarjetas.add(
-                    crearTarjeta(restaurante)
-            );
+            panelTarjetas.add(crearTarjeta(restaurante));
         }
 
         if (visibles.isEmpty()) {
@@ -341,11 +333,7 @@ public class EstudianteFrame extends JFrame {
                     "No se encontraron restaurantes.",
                     SwingConstants.CENTER
             );
-
-            mensaje.setForeground(
-                    Estilos.TEXTO_SECUNDARIO
-            );
-
+            mensaje.setForeground(Estilos.TEXTO_SECUNDARIO);
             panelTarjetas.add(mensaje);
         }
 
@@ -383,45 +371,96 @@ public class EstudianteFrame extends JFrame {
                 )
         );
 
-        JLabel nombre =
-                new JLabel(restaurante.getNombre());
-
-        nombre.setFont(
-                Estilos.fuente(Font.BOLD, 18)
-        );
-        nombre.setForeground(Estilos.TEXTO);
-
-        JLabel ubicacion =
-                new JLabel(restaurante.getUbicacion());
-
-        ubicacion.setForeground(
-                Estilos.TEXTO_SECUNDARIO
-        );
-
-        JLabel estado =
-                new JLabel(restaurante.getEstado().toString());
-
         boolean abierto =
                 restaurante.getEstado()
                 == EstadoRestaurante.ABIERTO;
 
-        estado.setForeground(
-                abierto
-                        ? Estilos.VERDE_MEDIO
-                        : Estilos.ERROR
+        JLabel nombre = crearEtiqueta(
+                restaurante.getNombre(),
+                Estilos.TEXTO,
+                Font.BOLD,
+                18
         );
 
+        JLabel ubicacion = crearEtiqueta(
+                restaurante.getUbicacion(),
+                Estilos.TEXTO_SECUNDARIO,
+                Font.PLAIN,
+                13
+        );
+
+        JLabel estado = crearEtiqueta(
+                restaurante.getEstado().toString(),
+                abierto ? Estilos.VERDE_MEDIO : Estilos.ERROR,
+                Font.BOLD,
+                13
+        );
+
+        JButton botonReportar =
+                new JButton("Agregar reporte");
+
+        Estilos.estilizarBotonPrincipal(botonReportar);
+        botonReportar.setEnabled(abierto);
+
+        botonReportar.addActionListener(evento -> {
+            if (accionReportar != null) {
+                accionReportar.accept(restaurante);
+            }
+        });
+        Integer promedio = tiemposPromedio.get(
+        restaurante.getNombre()
+        );
+
+        String textoTiempo = promedio == null
+                ? "Tiempo promedio: sin reportes"
+                : "Tiempo promedio: " + promedio + " minutos";
+
+        JLabel tiempoEspera = crearEtiqueta(
+                textoTiempo,
+                Estilos.TEXTO_SECUNDARIO,
+                Font.BOLD,
+                14
+        );
         tarjeta.add(nombre);
         tarjeta.add(Box.createVerticalStrut(8));
         tarjeta.add(ubicacion);
         tarjeta.add(Box.createVerticalStrut(12));
         tarjeta.add(estado);
-
+        tarjeta.add(Box.createVerticalStrut(8));
+        tarjeta.add(tiempoEspera);
+        tarjeta.add(Box.createVerticalStrut(15));
+        tarjeta.add(botonReportar);
+        
         return tarjeta;
     }
 
     public JButton getBotonActualizar() {
         return botonActualizar;
+    }
+
+    public void setAccionReportar(
+            Consumer<Restaurante> accionReportar
+    ) {
+        this.accionReportar = accionReportar;
+    }
+
+    public String solicitarDato(String mensaje) {
+        return JOptionPane.showInputDialog(
+                this,
+                mensaje
+        );
+    }
+
+    public void mostrarMensaje(
+            String titulo,
+            String mensaje
+    ) {
+        JOptionPane.showMessageDialog(
+                this,
+                mensaje,
+                titulo,
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
     public void mostrarError(String mensaje) {
@@ -431,5 +470,9 @@ public class EstudianteFrame extends JFrame {
                 "Error",
                 JOptionPane.ERROR_MESSAGE
         );
+    }
+    public void mostrarPromedios(Map<String, Integer> promedios){
+        tiemposPromedio = new HashMap<>(promedios);
+        aplicarFiltros();
     }
 }
