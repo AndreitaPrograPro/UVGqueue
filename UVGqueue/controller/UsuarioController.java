@@ -139,6 +139,7 @@ public class UsuarioController {
     }
     private String generarHash(String contrasena){
         byte[] salt = new byte[longitud_Hash];
+        
         SecureRandom random = new SecureRandom();
         random.nextBytes(salt);
         byte[] hash = derivarClave(contrasena.toCharArray(), salt, iteraciones);
