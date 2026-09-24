@@ -49,9 +49,9 @@ public class UsuarioController {
         boolean registro = registrarUsuario(nombre, correo, contrasena, confirmacion);
         if (registro){
             loginView.mostrarMensaje("Registro existoso", "La cuenta fue creada correctamente");
+            loginView.limpiarRegistro();
+            loginView.mostrarLogin();
         }
-        loginView.limpiarRegistro();
-        loginView.mostrarLogin();
     }
     public boolean registrarUsuario(String nombre, String correo, String contrasena, String confirmacion){
         if (!validarNombre(nombre)){
