@@ -3,14 +3,17 @@ package controller;
 import dao.ReporteDAO;
 import model.*;
 import view.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ReporteController {
+
     private final EstudianteFrame estudianteFrame;
     private final ReporteDAO reporteDAO;
     private final Usuario usuarioActivo;
+
     public ReporteController(
             EstudianteFrame estudianteFrame,
             Usuario usuarioActivo
@@ -18,93 +21,123 @@ public class ReporteController {
         this.estudianteFrame = estudianteFrame;
         this.usuarioActivo = usuarioActivo;
         this.reporteDAO = new ReporteDAO();
+
         estudianteFrame.setAccionReportar(this::procesarReporte);
+
         cargarPromedios();
     }
 
     private void procesarReporte(Restaurante restaurante) {
-        if (restaurante.getEstado()
-                != EstadoRestaurante.ABIERTO) {
+
+        // Verificar que el restaurante esté abierto
+        if (restaurante.getEstado() != EstadoRestaurante.ABIERTO) {
             estudianteFrame.mostrarError(
                     "El restaurante está cerrado."
             );
             return;
         }
 
-        String personas = estudianteFrame.solicitarDato(
-                "¿Cuántas personas hay en la fila?"
+        // Crear el formulario
+        FormularioView formulario = new FormularioView();
+
+        // Indicar qué hacer cuando el usuario envíe el formulario
+        formulario.setAccionEnviar(
+                (cantidadPersonas, tiempoEspera) -> {
+
+                    guardarReporte(
+                            restaurante,
+                            cantidadPersonas,
+                            tiempoEspera,
+                            formulario
+                    );
+                }
         );
 
-        if (personas == null) {
-            return;
-        }
+        // Mostrar formulario
+        formulario.setVisible(true);
+    }
 
-        String espera = estudianteFrame.solicitarDato(
-                "¿Cuántos minutos aproximadamente hay que esperar?"
+    private void guardarReporte(
+            Restaurante restaurante,
+            int cantidadPersonas,
+            int tiempoEspera,
+            FormularioView formulario
+    ) {
+
+        // Crear el reporte
+        Reporte reporte = new Reporte(
+                usuarioActivo,
+                cantidadPersonas,
+                tiempoEspera
         );
 
-        if (espera == null) {
-            return;
-        }
+        // Guardarlo en la base de datos
+        boolean registrado = reporteDAO.registrar(
+                reporte,
+                restaurante
+        );
 
-        try {
-            int cantidadPersonas =
-                    Integer.parseInt(personas);
+        if (registrado) {
 
-            int tiempoEspera =
-                    Integer.parseInt(espera);
+            // Agregar también el reporte al objeto Restaurante
+            restaurante.agregarReporte(reporte);
 
-            if (cantidadPersonas < 0 || tiempoEspera < 0) {
-                estudianteFrame.mostrarError(
-                        "Los números no pueden ser negativos."
-                );
-                return;
-            }
-
-            Reporte reporte = new Reporte(
-                    usuarioActivo,
-                    cantidadPersonas,
-                    tiempoEspera
+            estudianteFrame.mostrarMensaje(
+                    "Reporte registrado",
+                    "Gracias por compartir la información."
             );
 
-            boolean registrado =
-                    reporteDAO.registrar(
-                            reporte,
-                            restaurante
-                    );
+            // Cerrar el formulario
+            formulario.dispose();
 
-            if (registrado) {
-                restaurante.agregarReporte(reporte);
-                estudianteFrame.mostrarMensaje("Reporte registrado", "Gracias por compartir la información.");
-                cargarPromedios();
-            } else {
-                estudianteFrame.mostrarError(
-                        "No fue posible guardar el reporte."
-                );
-            }
+            // Actualizar los promedios mostrados
+            cargarPromedios();
 
-        } catch (NumberFormatException e) {
+        } else {
+
             estudianteFrame.mostrarError(
-                    "Debes ingresar números enteros."
+                    "No fue posible guardar el reporte."
             );
         }
     }
-    public void cargarPromedios(){
-        Map<String, ArrayList<Integer>> tiempos = reporteDAO.obtenerTiempos();
-        Map<String, Integer> promedios = new HashMap<>();
-        for (String restaurante : tiempos.keySet()){
-                promedios.put(restaurante, calcularPromedio(tiempos.get(restaurante)));
+
+    public void cargarPromedios() {
+
+        Map<String, ArrayList<Integer>> tiempos =
+                reporteDAO.obtenerTiempos();
+
+        Map<String, Integer> promedios =
+                new HashMap<>();
+
+        for (String restaurante : tiempos.keySet()) {
+
+            promedios.put(
+                    restaurante,
+                    calcularPromedio(
+                            tiempos.get(restaurante)
+                    )
+            );
         }
+
         estudianteFrame.mostrarPromedios(promedios);
     }
-    private int calcularPromedio(ArrayList<Integer> tiempos){
-        if (tiempos == null ||  tiempos.isEmpty()){
-                return 0;
+
+    private int calcularPromedio(
+            ArrayList<Integer> tiempos
+    ) {
+
+        if (tiempos == null || tiempos.isEmpty()) {
+            return 0;
         }
-        int suma=0;
-        for (int tiempo : tiempos){
-                suma+=tiempo;
+
+        int suma = 0;
+
+        for (int tiempo : tiempos) {
+            suma += tiempo;
         }
-        return Math.round((float) suma / tiempos.size());
+
+        return Math.round(
+                (float) suma / tiempos.size()
+        );
     }
 }
