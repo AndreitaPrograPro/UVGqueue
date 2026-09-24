@@ -98,7 +98,7 @@ public class ReporteController {
         estudianteFrame.mostrarPromedios(promedios);
     }
     private int calcularPromedio(ArrayList<Integer> tiempos){
-        if (tiempos == null and  tiempos.isEmpty){
+        if (tiempos == null ||  tiempos.isEmpty){
                 return 0;
         }
         int suma=0;
