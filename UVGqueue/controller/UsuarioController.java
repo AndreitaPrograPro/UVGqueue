@@ -138,7 +138,7 @@ public class UsuarioController {
         return contrasena!= null && contrasena.equals(confirmacion);
     }
     private String generarHash(String contrasena){
-        byte[] salt = new byte[longitud_Hash];
+        byte[] salt = new byte[longitud_salt];
         
         SecureRandom random = new SecureRandom();
         random.nextBytes(salt);
