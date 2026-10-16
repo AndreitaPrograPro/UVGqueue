@@ -14,7 +14,8 @@ public class RestauranteController{
     ) {
         this.estudianteFrame = estudianteFrame;
         this.restauranteDAO = new RestauranteDAO();
-
+        estudianteFrame.getBotonActualizar().addActionListener(
+        evento -> actualizarRestaurantes());
         registrarEventos();
         cargarRestaurantes();
     }
@@ -24,6 +25,11 @@ public class RestauranteController{
                 .addActionListener(
                         evento -> cargarRestaurantes()
                 );
+    }
+    private void actualizarRestaurantes() {
+        estudianteFrame.mostrarRestaurantes(
+                restauranteDAO.obtenerTodos()
+        );
     }
 
     public void cargarRestaurantes() {

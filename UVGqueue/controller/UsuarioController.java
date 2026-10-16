@@ -38,6 +38,9 @@ public class UsuarioController {
             new RestauranteController(estudianteFrame);
             new ReporteController(estudianteFrame,usuarioActivo);
             new FavoritoController(estudianteFrame, usuarioActivo);
+            estudianteFrame.getBotonActualizar().addActionListener(evento -> {
+        actualizarTiempos(estudianteFrame);
+});
         } else { 
             loginView.mostrarMensaje("Error", "Usuario o contraseña incorrecto");
         }
@@ -174,6 +177,57 @@ public class UsuarioController {
         } finally{
             especificacion.clearPassword();
         }
+    }
+    private void actualizarTiempos(EstudianteFrame estudianteFrame) {
+
+        ReporteDAO reporteDAO = new ReporteDAO();
+
+        new javax.swing.SwingWorker<java.util.Map<String, Integer>, Void>() {
+
+            @Override
+            protected java.util.Map<String, Integer> doInBackground() {
+
+                java.util.Map<String, java.util.ArrayList<Integer>> tiempos =
+                        reporteDAO.obtenerTiempos();
+
+                java.util.Map<String, Integer> promedios =
+                        new java.util.HashMap<>();
+
+                for (java.util.Map.Entry<String, java.util.ArrayList<Integer>> entrada
+                        : tiempos.entrySet()) {
+
+                    java.util.ArrayList<Integer> lista = entrada.getValue();
+
+                    if (!lista.isEmpty()) {
+
+                        double promedio = lista.stream()
+                                .mapToInt(Integer::intValue)
+                                .average()
+                                .orElse(0);
+
+                        promedios.put(
+                                entrada.getKey(),
+                                (int) Math.round(promedio)
+                        );
+                    }
+                }
+
+                return promedios;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    estudianteFrame.mostrarPromedios(get());
+                } catch (Exception e) {
+                    estudianteFrame.mostrarError(
+                            "No fue posible actualizar los tiempos."
+                    );
+                    e.printStackTrace();
+                }
+            }
+
+        }.execute();
     }
 
 }
