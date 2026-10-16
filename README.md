@@ -20,7 +20,7 @@ Host        |   mysql-154b58c1-uvgqueue.f.aivencloud.com
 Puerto      |   17652
 Nombre base |   uvgqueue
 Usuario     |   avnadmin
-Contraseña  |   (git secrets)
+Contraseña  |   AVNS_eX9Ad_u3Z7hlyeCPOcv
 Certificado |   C:\...\UVGqueue\cartificates\ca.pem
 
 
@@ -34,7 +34,7 @@ DB_HOST     |   mysql-154b58c1-uvgqueue.f.aivencloud.com
 DB_PORT     |   17652
 DB_NAME     |   uvgqueue
 DB_USER     |   avnadmin
-DB_PASSWORD |   (git secrets)
+DB_PASSWORD |   AVNS_eX9Ad_u3Z7hlyeCPOcv
 DB_SSL_CA   |   C:\...\UVGqueue\cartificates\ca.pem
 ==========================================================
 
