@@ -37,6 +37,7 @@ public class UsuarioController {
             loginView.dispose();
             new RestauranteController(estudianteFrame);
             new ReporteController(estudianteFrame,usuarioActivo);
+            new FavoritoController(estudianteFrame, usuarioActivo);
         } else { 
             loginView.mostrarMensaje("Error", "Usuario o contraseña incorrecto");
         }

@@ -11,7 +11,9 @@ import javax.swing.event.DocumentListener;
 import model.EstadoRestaurante;
 import model.Restaurante;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class EstudianteFrame extends JFrame {
     private final JPanel panelTarjetas =
@@ -27,9 +29,22 @@ public class EstudianteFrame extends JFrame {
             new JLabel("0 restaurantes");
     private final JButton botonActualizar =
             new JButton("Actualizar");
+    private final JButton botonInicio =
+            crearBotonMenu("Inicio", true);
+    private final JButton botonFavoritos =
+            crearBotonMenu("Favoritos", false);
+    private final JLabel etiquetaTitulo = crearEtiqueta(
+            "¿Dónde quieres comer hoy?",
+            Estilos.TEXTO,
+            Font.BOLD,
+            28
+    );
     private List<Restaurante> restaurantes = new ArrayList<>();
     private Consumer<Restaurante> accionReportar;
+    private Consumer<Restaurante> accionAlternarFavorito;
     private Map<String, Integer> tiemposPromedio = new HashMap<>();
+    private Set<String> favoritos = new HashSet<>();
+    private boolean soloFavoritos;
     public EstudianteFrame() {
         this("estudiante");
     }
@@ -82,9 +97,9 @@ public class EstudianteFrame extends JFrame {
         lateral.add(Box.createVerticalStrut(4));
         lateral.add(lema);
         lateral.add(Box.createVerticalStrut(48));
-        lateral.add(crearBotonMenu("Inicio", true));
+        lateral.add(botonInicio);
         lateral.add(Box.createVerticalStrut(10));
-        lateral.add(crearBotonMenu("Favoritos", false));
+        lateral.add(botonFavoritos);
         lateral.add(Box.createVerticalStrut(10));
         lateral.add(crearBotonMenu("Mis reportes", false));
         lateral.add(Box.createVerticalGlue());
@@ -182,16 +197,9 @@ public class EstudianteFrame extends JFrame {
                 Estilos.TEXTO_SECUNDARIO
         );
 
-        JLabel titulo = crearEtiqueta(
-                "¿Dónde quieres comer hoy?",
-                Estilos.TEXTO,
-                Font.BOLD,
-                28
-        );
-
         titulos.add(etiquetaSaludo);
         titulos.add(Box.createVerticalStrut(3));
-        titulos.add(titulo);
+        titulos.add(etiquetaTitulo);
 
         etiquetaResumen.setForeground(
                 Estilos.VERDE_OSCURO
@@ -311,7 +319,11 @@ public class EstudianteFrame extends JFrame {
                     || ("Abiertos".equals(filtro) && abierto)
                     || ("Cerrados".equals(filtro) && !abierto);
 
-            if (coincideTexto && coincideEstado) {
+            boolean coincideFavorito =
+                    !soloFavoritos
+                    || favoritos.contains(restaurante.getNombre());
+
+            if (coincideTexto && coincideEstado && coincideFavorito) {
                 visibles.add(restaurante);
             }
         }
@@ -330,7 +342,9 @@ public class EstudianteFrame extends JFrame {
 
         if (visibles.isEmpty()) {
             JLabel mensaje = new JLabel(
-                    "No se encontraron restaurantes.",
+                    soloFavoritos
+                            ? "Todavía no tienes restaurantes favoritos."
+                            : "No se encontraron restaurantes.",
                     SwingConstants.CENTER
             );
             mensaje.setForeground(Estilos.TEXTO_SECUNDARIO);
@@ -343,10 +357,16 @@ public class EstudianteFrame extends JFrame {
                         == EstadoRestaurante.ABIERTO)
                 .count();
 
-        etiquetaResumen.setText(
-                abiertos + " abiertos de "
-                + restaurantes.size()
-        );
+        if (soloFavoritos) {
+            etiquetaResumen.setText(
+                    visibles.size() + " favoritos"
+            );
+        } else {
+            etiquetaResumen.setText(
+                    abiertos + " abiertos de "
+                    + restaurantes.size()
+            );
+        }
 
         panelTarjetas.revalidate();
         panelTarjetas.repaint();
@@ -399,12 +419,23 @@ public class EstudianteFrame extends JFrame {
         JButton botonReportar =
                 new JButton("Agregar reporte");
 
+        boolean esFavorito = favoritos.contains(restaurante.getNombre());
+        JButton botonFavorito = new JButton(
+                esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"
+        );
+
         Estilos.estilizarBotonPrincipal(botonReportar);
+        Estilos.estilizarBotonPrincipal(botonFavorito);
         botonReportar.setEnabled(abierto);
 
         botonReportar.addActionListener(evento -> {
             if (accionReportar != null) {
                 accionReportar.accept(restaurante);
+            }
+        });
+        botonFavorito.addActionListener(evento -> {
+            if (accionAlternarFavorito != null) {
+                accionAlternarFavorito.accept(restaurante);
             }
         });
         Integer promedio = tiemposPromedio.get(
@@ -430,6 +461,8 @@ public class EstudianteFrame extends JFrame {
         tarjeta.add(tiempoEspera);
         tarjeta.add(Box.createVerticalStrut(15));
         tarjeta.add(botonReportar);
+        tarjeta.add(Box.createVerticalStrut(8));
+        tarjeta.add(botonFavorito);
         
         return tarjeta;
     }
@@ -438,10 +471,45 @@ public class EstudianteFrame extends JFrame {
         return botonActualizar;
     }
 
+    public JButton getBotonInicio() {
+        return botonInicio;
+    }
+
+    public JButton getBotonFavoritos() {
+        return botonFavoritos;
+    }
+
     public void setAccionReportar(
             Consumer<Restaurante> accionReportar
     ) {
         this.accionReportar = accionReportar;
+    }
+
+    public void setAccionAlternarFavorito(
+            Consumer<Restaurante> accionAlternarFavorito
+    ) {
+        this.accionAlternarFavorito = accionAlternarFavorito;
+    }
+
+    public void mostrarFavoritos(Set<String> favoritos) {
+        this.favoritos = new HashSet<>(favoritos);
+        aplicarFiltros();
+    }
+
+    public void mostrarSoloFavoritos(boolean soloFavoritos) {
+        this.soloFavoritos = soloFavoritos;
+        etiquetaTitulo.setText(
+                soloFavoritos
+                        ? "Tus restaurantes favoritos"
+                        : "¿Dónde quieres comer hoy?"
+        );
+        botonInicio.setBackground(
+                soloFavoritos ? Estilos.VERDE_OSCURO : Estilos.VERDE_MEDIO
+        );
+        botonFavoritos.setBackground(
+                soloFavoritos ? Estilos.VERDE_MEDIO : Estilos.VERDE_OSCURO
+        );
+        aplicarFiltros();
     }
 
     public String solicitarDato(String mensaje) {
