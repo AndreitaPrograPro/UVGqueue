@@ -9,16 +9,14 @@ public class ReporteController {
     private final EstudianteFrame estudianteFrame;
     private final ReporteDAO reporteDAO;
     private final Usuario usuarioActivo;
-    public ReporteController(
-            EstudianteFrame estudianteFrame,
-            Usuario usuarioActivo
-    ) {
+    public ReporteController(EstudianteFrame estudianteFrame,Usuario usuarioActivo) {
         this.estudianteFrame = estudianteFrame;
         this.usuarioActivo = usuarioActivo;
         this.reporteDAO = new ReporteDAO();
         estudianteFrame.setAccionReportar(this::procesarReporte);
+        estudianteFrame.setAccionVerReportes(this::cargarMisReportes);
         cargarPromedios();
-    }
+        }
     private void procesarReporte(Restaurante restaurante) {
         if (restaurante.getEstado() != EstadoRestaurante.ABIERTO) {
             estudianteFrame.mostrarError(
@@ -69,6 +67,7 @@ public class ReporteController {
             );
         }
     }
+    
     public void cargarPromedios() {
         Map<String, ArrayList<Integer>> tiempos =
                 reporteDAO.obtenerTiempos();
@@ -95,5 +94,9 @@ public class ReporteController {
         return Math.round(
                 (float) suma / tiempos.size()
         );
+    }
+    private void cargarMisReportes(){
+        ArrayList<Reporte> reportes = reporteDAO.obtenerPorUsuario(usuarioActivo);
+        estudianteFrame.mostrarMisReportes(reportes);
     }
 }

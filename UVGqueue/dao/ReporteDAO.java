@@ -60,4 +60,39 @@ public class ReporteDAO {
         }
         return tiempos;
     }
+    public ArrayList<Reporte> obtenerPorUsuario(Usuario usuario) {
+        ArrayList<Reporte> reportes = new ArrayList<>();
+        String sql = """
+                SELECT
+                    restaurante.nombre AS nombre_restaurante,
+                    reporte.cantidad_personas,
+                    reporte.tiempo_espera,
+                    reporte.fecha_hora
+                FROM reporte
+                INNER JOIN restaurante
+                    ON reporte.id_restaurante =
+                    restaurante.id_restaurante
+                WHERE reporte.id_usuario = ?
+                ORDER BY reporte.fecha_hora DESC
+                """;
+        try (Connection connection =Databaseconnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1,usuario.getID());
+            try (ResultSet resultSet =statement.executeQuery()
+            ) {
+                while (resultSet.next()) {
+                    String nombreRestaurante = resultSet.getString("nombre_restaurante");
+                    int cantidadPersonas =resultSet.getInt("cantidad_personas");
+                    int tiempoEspera =resultSet.getInt("tiempo_espera");
+                    Timestamp fecha =resultSet.getTimestamp("fecha_hora");
+                    Reporte reporte = new Reporte(usuario,nombreRestaurante,cantidadPersonas,tiempoEspera,fecha.toLocalDateTime());
+                    reportes.add(reporte);
+                }
+            }
+        } catch (SQLException excepcion) {
+            System.out.println("No fue posible obtener los reportes del usuario.");
+            excepcion.printStackTrace();
+        }
+        return reportes;
+    }
 }
