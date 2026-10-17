@@ -1,5 +1,5 @@
 package view;
-
+import java.util.function.BiConsumer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import javax.swing.*;
@@ -12,6 +12,7 @@ public class FormularioView extends JFrame {
     private JTextField txtCantidadEstudiantes;
     private JTextField txtTiempoAtencion;
     private JTextField txtHoraActual;
+    private BiConsumer<Integer, Double> accionEnviar;
 
     public FormularioView() {
         setTitle("Registro de Fila - UVGqueue");
@@ -157,16 +158,12 @@ public class FormularioView extends JFrame {
         }
 
         // 4. Procesar el envío si pasa la validación
-        JOptionPane.showMessageDialog(
-                this,
-                "¡Registro enviado con éxito!\n\n" +
-                "• Nombre: " + nombre + "\n" +
-                "• Estudiantes en fila: " + cantidadEstudiantes + "\n" +
-                "• Tiempo de atención: " + tiempoAtencion + " min\n" +
-                "• Hora de inicio: " + horaActual,
-                "Éxito",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        if (accionEnviar != null) {
+            accionEnviar.accept(
+                cantidadEstudiantes,
+                tiempoAtencion
+            );
+        }
 
         limpiarFormulario();
     }
@@ -181,4 +178,8 @@ public class FormularioView extends JFrame {
         txtTiempoAtencion.setText("");
         txtHoraActual.setText("");
     }
+    public void setAccionEnviar(
+        BiConsumer<Integer, Double> accionEnviar) {
+    this.accionEnviar = accionEnviar;
+}
 }

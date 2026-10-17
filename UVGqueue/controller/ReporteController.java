@@ -1,12 +1,10 @@
 package controller;
-
 import dao.ReporteDAO;
 import model.*;
 import view.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
 public class ReporteController {
     private final EstudianteFrame estudianteFrame;
     private final ReporteDAO reporteDAO;
@@ -21,90 +19,81 @@ public class ReporteController {
         estudianteFrame.setAccionReportar(this::procesarReporte);
         cargarPromedios();
     }
-
     private void procesarReporte(Restaurante restaurante) {
-        if (restaurante.getEstado()
-                != EstadoRestaurante.ABIERTO) {
+        if (restaurante.getEstado() != EstadoRestaurante.ABIERTO) {
             estudianteFrame.mostrarError(
                     "El restaurante está cerrado."
             );
             return;
         }
-
-        String personas = estudianteFrame.solicitarDato(
-                "¿Cuántas personas hay en la fila?"
-        );
-
-        if (personas == null) {
-            return;
-        }
-
-        String espera = estudianteFrame.solicitarDato(
-                "¿Cuántos minutos aproximadamente hay que esperar?"
-        );
-
-        if (espera == null) {
-            return;
-        }
-
-        try {
-            int cantidadPersonas =
-                    Integer.parseInt(personas);
-
-            int tiempoEspera =
-                    Integer.parseInt(espera);
-
-            if (cantidadPersonas < 0 || tiempoEspera < 0) {
-                estudianteFrame.mostrarError(
-                        "Los números no pueden ser negativos."
-                );
-                return;
-            }
-
-            Reporte reporte = new Reporte(
-                    usuarioActivo,
-                    cantidadPersonas,
-                    tiempoEspera
-            );
-
-            boolean registrado =
-                    reporteDAO.registrar(
-                            reporte,
-                            restaurante
+        FormularioView formulario = new FormularioView();
+        formulario.setAccionEnviar(
+                (cantidadPersonas, tiempoAtencion) -> {
+                    int tiempoEspera = (int) Math.round(tiempoAtencion);
+                    guardarReporte(
+                            restaurante,
+                            cantidadPersonas,
+                            tiempoEspera,
+                            formulario
                     );
-
-            if (registrado) {
-                restaurante.agregarReporte(reporte);
-                estudianteFrame.mostrarMensaje("Reporte registrado", "Gracias por compartir la información.");
-                cargarPromedios();
-            } else {
-                estudianteFrame.mostrarError(
-                        "No fue posible guardar el reporte."
-                );
-            }
-
-        } catch (NumberFormatException e) {
+                }
+        );
+        formulario.setVisible(true);
+    }
+    private void guardarReporte(
+            Restaurante restaurante,
+            int cantidadPersonas,
+            int tiempoEspera,
+            FormularioView formulario
+    ) {
+        Reporte reporte = new Reporte(
+                usuarioActivo,
+                cantidadPersonas,
+                tiempoEspera
+        );
+        boolean registrado = reporteDAO.registrar(
+                reporte,
+                restaurante
+        );
+        if (registrado) {
+            restaurante.agregarReporte(reporte);
+            estudianteFrame.mostrarMensaje(
+                    "Reporte registrado",
+                    "Gracias por compartir la información."
+            );
+            formulario.dispose();
+            cargarPromedios();
+        } else {
             estudianteFrame.mostrarError(
-                    "Debes ingresar números enteros."
+                    "No fue posible guardar el reporte."
             );
         }
     }
-    public void cargarPromedios(){
-        Map<String, ArrayList<Integer>> tiempos = reporteDAO.obtenerTiempos();
+    public void cargarPromedios() {
+        Map<String, ArrayList<Integer>> tiempos =
+                reporteDAO.obtenerTiempos();
         Map<String, Integer> promedios = new HashMap<>();
-        for (String restaurante : tiempos.keySet()){
-                promedios.put(restaurante, calcularPromedio(tiempos.get(restaurante)));
+        for (String restaurante : tiempos.keySet()) {
+
+            promedios.put(
+                    restaurante,
+                    calcularPromedio(
+                            tiempos.get(restaurante)
+                    )
+            );
         }
         estudianteFrame.mostrarPromedios(promedios);
     }
-    private int calcularPromedio(ArrayList<Integer> tiempos){
-        if (tiempos == null ||  tiempos.isEmpty()){
-                return 0;
+    private int calcularPromedio(ArrayList<Integer> tiempos) {
+        if (tiempos == null || tiempos.isEmpty()) {
+            return 0;
         }
-        int suma=0;
-        for (int tiempo : tiempos){
-                suma+=tiempo;
+        int suma = 0;
+        for (int tiempo : tiempos) {
+            suma += tiempo;
         }
-        return Math.round((float) suma / tiempos.size());
+        return Math.round(
+                (float) suma / tiempos.size()
+        );
     }
 }
