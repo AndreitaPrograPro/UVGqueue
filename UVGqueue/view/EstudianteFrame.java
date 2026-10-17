@@ -1,6 +1,7 @@
 package view;
 
 import java.awt.*;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -9,6 +10,7 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import model.EstadoRestaurante;
+import model.Reporte;
 import model.Restaurante;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,18 +35,15 @@ public class EstudianteFrame extends JFrame {
             crearBotonMenu("Inicio", true);
     private final JButton botonFavoritos =
             crearBotonMenu("Favoritos", false);
-    private final JLabel etiquetaTitulo = crearEtiqueta(
-            "¿Dónde quieres comer hoy?",
-            Estilos.TEXTO,
-            Font.BOLD,
-            28
-    );
+    private final JButton botonReportes = crearBotonMenu("Mis reportes", false);
+    private final JLabel etiquetaTitulo = crearEtiqueta("¿Dónde quieres comer hoy?",Estilos.TEXTO,Font.BOLD,28);
     private List<Restaurante> restaurantes = new ArrayList<>();
     private Consumer<Restaurante> accionReportar;
     private Consumer<Restaurante> accionAlternarFavorito;
     private Map<String, Integer> tiemposPromedio = new HashMap<>();
     private Set<String> favoritos = new HashSet<>();
     private boolean soloFavoritos;
+    private Runnable accionVerReportes;
     public EstudianteFrame() {
         this("estudiante");
     }
@@ -101,7 +100,7 @@ public class EstudianteFrame extends JFrame {
         lateral.add(Box.createVerticalStrut(10));
         lateral.add(botonFavoritos);
         lateral.add(Box.createVerticalStrut(10));
-        lateral.add(crearBotonMenu("Mis reportes", false));
+        lateral.add(botonReportes);
         lateral.add(Box.createVerticalGlue());
         lateral.add(crearEtiqueta(
                 "UVGqueue 2026",
@@ -261,10 +260,13 @@ public class EstudianteFrame extends JFrame {
     }
 
     private void registrarEventos() {
-        filtroEstado.addActionListener(
-                evento -> aplicarFiltros()
+        botonReportes.addActionListener(evento -> {
+        if (accionVerReportes != null) {
+                accionVerReportes.run();
+        }
+        });
+        filtroEstado.addActionListener(evento -> aplicarFiltros()
         );
-
         campoBusqueda.getDocument().addDocumentListener(
                 new DocumentListener() {
                     public void insertUpdate(DocumentEvent e) {
@@ -484,7 +486,9 @@ public class EstudianteFrame extends JFrame {
     ) {
         this.accionReportar = accionReportar;
     }
-
+    public void setAccionVerReportes(Runnable accionVerReportes) {
+        this.accionVerReportes = accionVerReportes;
+        }
     public void setAccionAlternarFavorito(
             Consumer<Restaurante> accionAlternarFavorito
     ) {
@@ -510,6 +514,12 @@ public class EstudianteFrame extends JFrame {
                 soloFavoritos ? Estilos.VERDE_MEDIO : Estilos.VERDE_OSCURO
         );
         aplicarFiltros();
+        campoBusqueda.setEnabled(true);
+        filtroEstado.setEnabled(true);
+
+        botonReportes.setBackground(
+                Estilos.VERDE_OSCURO
+        );
     }
 
     public String solicitarDato(String mensaje) {
@@ -543,4 +553,112 @@ public class EstudianteFrame extends JFrame {
         tiemposPromedio = new HashMap<>(promedios);
         aplicarFiltros();
     }
+    public void mostrarMisReportes(List<Reporte> reportes
+        ) {
+        panelTarjetas.removeAll();
+        etiquetaTitulo.setText("Mis reportes");
+        botonInicio.setBackground(Estilos.VERDE_OSCURO);
+        botonFavoritos.setBackground(Estilos.VERDE_OSCURO);
+        botonReportes.setBackground(Estilos.VERDE_MEDIO);
+        campoBusqueda.setEnabled(false);
+        filtroEstado.setEnabled(false);
+        etiquetaResumen.setText(reportes.size() == 1? "1 reporte": reportes.size() + " reportes"
+        );
+        if (reportes.isEmpty()) {
+                JLabel mensaje = new JLabel(
+                        "Todavía no has realizado reportes.",
+                        SwingConstants.CENTER
+                );
+
+                mensaje.setForeground(
+                        Estilos.TEXTO_SECUNDARIO
+                );
+
+                panelTarjetas.add(mensaje);
+
+        } else {
+
+                for (Reporte reporte : reportes) {
+                panelTarjetas.add(
+                        crearTarjetaReporte(reporte)
+                );
+                }
+        }
+
+        panelTarjetas.revalidate();
+        panelTarjetas.repaint();
+     }
+     private JPanel crearTarjetaReporte(
+                Reporte reporte
+        ) {
+        JPanel tarjeta = new JPanel();
+
+        tarjeta.setLayout(
+                new BoxLayout(
+                        tarjeta,
+                        BoxLayout.Y_AXIS
+                )
+        );
+
+        tarjeta.setBackground(Color.WHITE);
+
+        tarjeta.setBorder(
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(
+                                Estilos.BORDE
+                        ),
+                        BorderFactory.createEmptyBorder(
+                                18, 18, 18, 18
+                        )
+                )
+        );
+
+        JLabel restaurante = crearEtiqueta(
+                reporte.getNombreRestaurante(),
+                Estilos.TEXTO,
+                Font.BOLD,
+                18
+        );
+
+        JLabel personas = crearEtiqueta(
+                "Personas en fila: "
+                        + reporte.getCantidadPersonas(),
+                Estilos.TEXTO_SECUNDARIO,
+                Font.PLAIN,
+                14
+        );
+
+        JLabel tiempo = crearEtiqueta(
+                "Tiempo de espera: "
+                        + reporte.getTiempoEspera()
+                        + " minutos",
+                Estilos.TEXTO_SECUNDARIO,
+                Font.PLAIN,
+                14
+        );
+
+        DateTimeFormatter formato =
+                DateTimeFormatter.ofPattern(
+                        "dd/MM/yyyy HH:mm"
+                );
+
+        JLabel fecha = crearEtiqueta(
+                "Fecha: "
+                        + reporte.getFechaHora().format(formato),
+                Estilos.TEXTO_SECUNDARIO,
+                Font.PLAIN,
+                13
+        );
+
+        tarjeta.add(restaurante);
+        tarjeta.add(Box.createVerticalStrut(12));
+        tarjeta.add(personas);
+        tarjeta.add(Box.createVerticalStrut(7));
+        tarjeta.add(tiempo);
+        tarjeta.add(Box.createVerticalStrut(7));
+        tarjeta.add(fecha);
+
+        return tarjeta;
+        }
+
 }
