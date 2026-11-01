@@ -30,7 +30,7 @@ public class EstudianteFrame extends JFrame {
     private final JLabel etiquetaResumen =
             new JLabel("0 restaurantes");
     private final JButton botonActualizar =
-            new JButton("Actualizar");
+            new JButton("");
     private final JButton botonInicio =
             crearBotonMenu("Inicio", true);
     private final JButton botonFavoritos =
@@ -51,6 +51,10 @@ public class EstudianteFrame extends JFrame {
         etiquetaSaludo.setText("Hola, " + nombreUsuario);
         configurarVentana();
         construirInterfaz();
+        botonActualizar.setIcon(Estilos.cargarIcono("actualizar.png", 20, 20));
+        botonFavoritos.setIcon(Estilos.cargarIcono("Favoritos.png", 20, 20));
+        botonActualizar.setIconTextGap(10);
+        botonFavoritos.setIconTextGap(12);
         registrarEventos();
     }
     private void configurarVentana() {
@@ -374,34 +378,31 @@ public class EstudianteFrame extends JFrame {
         panelTarjetas.repaint();
     }
 
-    private JPanel crearTarjeta(
-            Restaurante restaurante
-    ) {
-        JPanel tarjeta = new JPanel();
+    private JPanel crearTarjeta(Restaurante restaurante) {
+        ImageIcon imagen = obtenerImagenRestaurante(
+                restaurante.getNombre()
+        );
+
+        PanelImagen tarjeta = new PanelImagen(imagen);
+
         tarjeta.setLayout(
                 new BoxLayout(tarjeta, BoxLayout.Y_AXIS)
         );
-        tarjeta.setBackground(Color.WHITE);
+
         tarjeta.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(
-                                Estilos.BORDE
-                        ),
-                        BorderFactory.createEmptyBorder(
-                                18, 18, 18, 18
-                        )
-                )
+                BorderFactory.createEmptyBorder(20, 22, 20, 22)
         );
 
-        boolean abierto =
-                restaurante.getEstado()
+        tarjeta.setPreferredSize(new Dimension(400, 230));
+
+        boolean abierto = restaurante.getEstado()
                 == EstadoRestaurante.ABIERTO;
 
         JLabel nombre = crearEtiqueta(
                 restaurante.getNombre(),
                 Estilos.TEXTO,
                 Font.BOLD,
-                18
+                22
         );
 
         JLabel ubicacion = crearEtiqueta(
@@ -412,63 +413,76 @@ public class EstudianteFrame extends JFrame {
         );
 
         JLabel estado = crearEtiqueta(
-                restaurante.getEstado().toString(),
-                abierto ? Estilos.VERDE_MEDIO : Estilos.ERROR,
+                abierto ? "● ABIERTO" : "● CERRADO",
+                abierto ? Estilos.VERDE_OSCURO : Estilos.ERROR,
                 Font.BOLD,
                 13
         );
 
-        JButton botonReportar =
-                new JButton("Agregar reporte");
-
-        boolean esFavorito = favoritos.contains(restaurante.getNombre());
-        JButton botonFavorito = new JButton(
-                esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"
-        );
-
-        Estilos.estilizarBotonPrincipal(botonReportar);
-        Estilos.estilizarBotonPrincipal(botonFavorito);
-        botonReportar.setEnabled(abierto);
-
-        botonReportar.addActionListener(evento -> {
-            if (accionReportar != null) {
-                accionReportar.accept(restaurante);
-            }
-        });
-        botonFavorito.addActionListener(evento -> {
-            if (accionAlternarFavorito != null) {
-                accionAlternarFavorito.accept(restaurante);
-            }
-        });
         Integer promedio = tiemposPromedio.get(
-        restaurante.getNombre()
+                restaurante.getNombre()
         );
 
-        String textoTiempo = promedio == null
+        JLabel tiempo = crearEtiqueta(
+                promedio == null
                 ? "Tiempo promedio: sin reportes"
-                : "Tiempo promedio: " + promedio + " minutos";
-
-        JLabel tiempoEspera = crearEtiqueta(
-                textoTiempo,
-                Estilos.TEXTO_SECUNDARIO,
+                : "Tiempo promedio: " + promedio + " minutos",
+                Estilos.TEXTO,
                 Font.BOLD,
                 14
         );
+
+        JButton botonReportar = new JButton("Agregar reporte");
+
+        Estilos.estilizarBotonPrincipal(botonReportar);
+        botonReportar.setEnabled(abierto);
+
+        botonReportar.addActionListener(evento -> {
+                if (accionReportar != null) {
+                accionReportar.accept(restaurante);
+                }
+        });
+
+        boolean esFavorito = favoritos.contains(
+                restaurante.getNombre()
+        );
+
+        JButton botonFavorito = new JButton(
+                esFavorito
+                ? "Quitar de favoritos"
+                : "Agregar a favoritos"
+        );
+
+        Estilos.estilizarBotonPrincipal(botonFavorito);
+
+        botonFavorito.addActionListener(evento -> {
+                if (accionAlternarFavorito != null) {
+                accionAlternarFavorito.accept(restaurante);
+                }
+        });
+
+        JPanel botones = new JPanel(
+                new FlowLayout(FlowLayout.LEFT, 10, 0)
+        );
+
+        botones.setOpaque(false);
+        botones.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        botones.add(botonReportar);
+        botones.add(botonFavorito);
+
         tarjeta.add(nombre);
-        tarjeta.add(Box.createVerticalStrut(8));
+        tarjeta.add(Box.createVerticalStrut(6));
         tarjeta.add(ubicacion);
         tarjeta.add(Box.createVerticalStrut(12));
         tarjeta.add(estado);
         tarjeta.add(Box.createVerticalStrut(8));
-        tarjeta.add(tiempoEspera);
-        tarjeta.add(Box.createVerticalStrut(15));
-        tarjeta.add(botonReportar);
-        tarjeta.add(Box.createVerticalStrut(8));
-        tarjeta.add(botonFavorito);
-        
-        return tarjeta;
-    }
+        tarjeta.add(tiempo);
+        tarjeta.add(Box.createVerticalGlue());
+        tarjeta.add(botones);
 
+        return tarjeta;
+}
     public JButton getBotonActualizar() {
         return botonActualizar;
     }
@@ -649,7 +663,6 @@ public class EstudianteFrame extends JFrame {
                 Font.PLAIN,
                 13
         );
-
         tarjeta.add(restaurante);
         tarjeta.add(Box.createVerticalStrut(12));
         tarjeta.add(personas);
@@ -657,8 +670,36 @@ public class EstudianteFrame extends JFrame {
         tarjeta.add(tiempo);
         tarjeta.add(Box.createVerticalStrut(7));
         tarjeta.add(fecha);
-
         return tarjeta;
         }
+        private ImageIcon obtenerImagenRestaurante(String nombre) {
+                String archivo;
+                switch (nombre.toLowerCase(java.util.Locale.ROOT)) {
+                        case "&cafe":
+                        archivo = "&cafe.jfif";
+                        break;
+                        case "barista":
+                        archivo = "cafe_barista.jpg";
+                        break;
+                        case "gitane":
+                        archivo = "cafe_gitane.jpg";
+                        break;
+                        case "go green":
+                                archivo = "gogreen.jfif";
+                        default:
+                        archivo = "restaurante.png";
+                }
 
+                java.net.URL ruta = getClass().getResource(
+                        "/images/" + archivo
+                );
+
+                if (ruta == null) {
+                        ruta = getClass().getResource(
+                        "/images/restaurante.png"
+                        );
+                }
+
+                return ruta != null ? new ImageIcon(ruta) : null;
+                }
 }
