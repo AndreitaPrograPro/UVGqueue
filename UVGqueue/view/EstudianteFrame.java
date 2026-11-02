@@ -26,9 +26,7 @@ public class EstudianteFrame extends JFrame {
                 new JPanel(new GridLayout(0, 2, 18, 18));
         private final JTextField campoBusqueda = new JTextField();
         private final JComboBox<String> filtroEstado =
-                new JComboBox<>(new String[]{
-                        "Todos", "Abiertos", "Cerrados"
-                });
+                new JComboBox<>(new String[]{"Todos", "Abiertos", "Cerrados"});
         private final JLabel etiquetaSaludo =
                 new JLabel("Hola, estudiante");
         private final JLabel etiquetaResumen =

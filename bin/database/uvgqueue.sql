@@ -108,11 +108,11 @@ CREATE TABLE IF NOT EXISTS reporte_cierre (
 INSERT IGNORE INTO restaurante (
     nombre, ubicacion, estado, hora_apertura, hora_cierre
 ) VALUES
-('Gitane', 'Cafetería CIT', 'ABIERTO', '00:00:00', '24:00:00'),
-('GoGreen', 'Cafetería CIT', 'ABIERTO', '00:00:00', '24:00:00'),
-('Mixtas Frankfurt', 'Cafetería CIT', 'ABIERTO', '00:00:00', '24:00:00'),
-('Panitos', 'Cafetería CIT', 'ABIERTO', '00:00:00', '24:00:00'),
-('&Cafe', 'CIT 6', 'ABIERTO', '00:00:00', '24:00:00'),
-('Barista', 'Patio CIT', 'ABIERTO', '00:00:00', '24:00:00'),
-('Golden Harvest', 'Puerta 6', 'ABIERTO', '00:00:00', '24:00:00'),
-('Sarita', 'Edificio F', 'ABIERTO', '00:00:00', '24:00:00');
+('Gitane', 'Cafetería CIT', 'ABIERTO', '06:00:00', '24:00:00'),
+('GoGreen', 'Cafetería CIT', 'ABIERTO', '06:00:00', '24:00:00'),
+('Mixtas Frankfurt', 'Cafetería CIT', 'ABIERTO', '06:00:00', '24:00:00'),
+('Panitos', 'Cafetería CIT', 'ABIERTO', '06:00:00', '24:00:00'),
+('&Cafe', 'CIT 6', 'ABIERTO', '06:00:00', '24:00:00'),
+('Barista', 'Patio CIT', 'ABIERTO', '06:00:00', '24:00:00'),
+('Golden Harvest', 'Puerta 6', 'ABIERTO', '06:00:00', '24:00:00'),
+('Sarita', 'Edificio F', 'ABIERTO', '06:00:00', '24:00:00');
