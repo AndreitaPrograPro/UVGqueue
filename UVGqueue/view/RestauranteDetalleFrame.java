@@ -13,12 +13,12 @@ public class RestauranteDetalleFrame extends JFrame {
     public RestauranteDetalleFrame(
             Restaurante restaurante,
             Integer promedio,
-            List<Integer> tiempos
+            List<Integer> promediosPorIntervalo
     ) {
         setTitle(restaurante.getNombre());
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setSize(800, 720);
-        setMinimumSize(new Dimension(700, 650));
+        setSize(850, 760);
+        setMinimumSize(new Dimension(750, 680));
         setLocationRelativeTo(null);
 
         JPanel contenido = new JPanel();
@@ -44,16 +44,16 @@ public class RestauranteDetalleFrame extends JFrame {
                 Box.createVerticalStrut(20)
         );
 
-        contenido.add(
-                crearEspacioMenu()
-        );
+        contenido.add(crearEspacioMenu());
 
         contenido.add(
                 Box.createVerticalStrut(20)
         );
 
         contenido.add(
-                crearSeccionGrafica(tiempos)
+                crearSeccionGrafica(
+                        promediosPorIntervalo
+                )
         );
 
         JScrollPane scroll =
@@ -63,6 +63,7 @@ public class RestauranteDetalleFrame extends JFrame {
         scroll.getViewport().setBackground(
                 Estilos.FONDO
         );
+
         scroll.getVerticalScrollBar()
                 .setUnitIncrement(16);
 
@@ -74,22 +75,26 @@ public class RestauranteDetalleFrame extends JFrame {
             Integer promedio
     ) {
         JPanel encabezado = new JPanel();
+
         encabezado.setLayout(
                 new BoxLayout(
                         encabezado,
                         BoxLayout.Y_AXIS
                 )
         );
+
         encabezado.setBackground(Color.WHITE);
         encabezado.setAlignmentX(
                 Component.LEFT_ALIGNMENT
         );
+
         encabezado.setMaximumSize(
                 new Dimension(
                         Integer.MAX_VALUE,
                         180
                 )
         );
+
         encabezado.setBorder(
                 BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(
@@ -101,9 +106,30 @@ public class RestauranteDetalleFrame extends JFrame {
                 )
         );
 
+        EstadoRestaurante estadoActual =
+                restaurante.getEstadoActual();
+
         boolean abierto =
-                restaurante.getEstadoActual()
+                estadoActual
                 == EstadoRestaurante.ABIERTO;
+
+        Color colorEstado;
+
+        if (abierto) {
+            colorEstado =
+                    Estilos.VERDE_OSCURO;
+
+        } else if (
+                estadoActual
+                == EstadoRestaurante.POSIBLEMENTE_CERRADO
+        ) {
+            colorEstado =
+                    Estilos.AMARILLO;
+
+        } else {
+            colorEstado =
+                    Estilos.ERROR;
+        }
 
         JLabel nombre = crearEtiqueta(
                 restaurante.getNombre(),
@@ -121,17 +147,19 @@ public class RestauranteDetalleFrame extends JFrame {
 
         JLabel estado = crearEtiqueta(
                 obtenerTextoEstado(restaurante),
-                abierto
-                        ? Estilos.VERDE_OSCURO
-                        : Estilos.ERROR,
+                colorEstado,
                 Font.BOLD,
                 14
         );
 
         encabezado.add(nombre);
-        encabezado.add(Box.createVerticalStrut(7));
+        encabezado.add(
+                Box.createVerticalStrut(7)
+        );
         encabezado.add(ubicacion);
-        encabezado.add(Box.createVerticalStrut(12));
+        encabezado.add(
+                Box.createVerticalStrut(12)
+        );
         encabezado.add(estado);
 
         if (abierto) {
@@ -139,7 +167,8 @@ public class RestauranteDetalleFrame extends JFrame {
                     promedio == null
                             ? "Promedio aún no disponible"
                             : "Tiempo promedio: "
-                              + promedio + " minutos",
+                              + promedio
+                              + " minutos",
                     Estilos.TEXTO,
                     Font.BOLD,
                     15
@@ -148,33 +177,34 @@ public class RestauranteDetalleFrame extends JFrame {
             encabezado.add(
                     Box.createVerticalStrut(10)
             );
+
             encabezado.add(tiempo);
         }
 
         return encabezado;
     }
 
-    /*
-     * Por el momento este panel solamente reserva
-     * el espacio donde posteriormente irá el menú.
-     */
     private JPanel crearEspacioMenu() {
         JPanel panelMenu =
                 new JPanel(new BorderLayout());
 
         panelMenu.setBackground(Color.WHITE);
+
         panelMenu.setAlignmentX(
                 Component.LEFT_ALIGNMENT
         );
+
         panelMenu.setMaximumSize(
                 new Dimension(
                         Integer.MAX_VALUE,
                         260
                 )
         );
+
         panelMenu.setPreferredSize(
-                new Dimension(700, 260)
+                new Dimension(750, 260)
         );
+
         panelMenu.setBorder(
                 BorderFactory.createCompoundBorder(
                         BorderFactory.createTitledBorder(
@@ -190,13 +220,15 @@ public class RestauranteDetalleFrame extends JFrame {
         );
 
         JLabel mensaje = new JLabel(
-                "El menú del restaurante se mostrará aquí.",
+                "El menú del restaurante "
+                + "se mostrará aquí.",
                 SwingConstants.CENTER
         );
 
         mensaje.setForeground(
                 Estilos.TEXTO_SECUNDARIO
         );
+
         mensaje.setFont(
                 Estilos.fuente(
                         Font.PLAIN,
@@ -213,31 +245,36 @@ public class RestauranteDetalleFrame extends JFrame {
     }
 
     private JPanel crearSeccionGrafica(
-            List<Integer> tiempos
+            List<Integer> promedios
     ) {
         JPanel seccion =
                 new JPanel(new BorderLayout());
 
         seccion.setBackground(Color.WHITE);
+
         seccion.setAlignmentX(
                 Component.LEFT_ALIGNMENT
         );
+
         seccion.setMaximumSize(
                 new Dimension(
                         Integer.MAX_VALUE,
-                        300
+                        340
                 )
         );
+
         seccion.setPreferredSize(
-                new Dimension(700, 300)
+                new Dimension(750, 340)
         );
+
         seccion.setBorder(
                 BorderFactory.createCompoundBorder(
                         BorderFactory.createTitledBorder(
                                 BorderFactory.createLineBorder(
                                         Estilos.BORDE
                                 ),
-                                "Tiempos de espera reportados"
+                                "Promedio de espera "
+                                + "por intervalo"
                         ),
                         new EmptyBorder(
                                 15, 15, 15, 15
@@ -246,7 +283,7 @@ public class RestauranteDetalleFrame extends JFrame {
         );
 
         seccion.add(
-                new GraficaTiempoPanel(tiempos),
+                new GraficaBarrasPanel(promedios),
                 BorderLayout.CENTER
         );
 
@@ -278,39 +315,60 @@ public class RestauranteDetalleFrame extends JFrame {
             int estilo,
             int tamaño
     ) {
-        JLabel etiqueta = new JLabel(texto);
+        JLabel etiqueta =
+                new JLabel(texto);
+
         etiqueta.setForeground(color);
+
         etiqueta.setFont(
                 Estilos.fuente(
                         estilo,
                         tamaño
                 )
         );
+
         etiqueta.setAlignmentX(
                 Component.LEFT_ALIGNMENT
         );
+
         return etiqueta;
     }
 
-    /*
-     * Panel encargado de dibujar la gráfica.
-     */
-    private static class GraficaTiempoPanel
+    private static class GraficaBarrasPanel
             extends JPanel {
 
-        private final List<Integer> tiempos;
+        private static final String[] INTERVALOS = {
+            "07-08",
+            "08-09",
+            "09-10",
+            "10-11",
+            "11-12",
+            "12-13",
+            "13-14",
+            "14-15",
+            "15-16",
+            "16-17",
+            "17-18",
+            "18-19",
+            "19-20"
+        };
 
-        public GraficaTiempoPanel(
-                List<Integer> tiempos
+        private final List<Integer> promedios;
+
+        public GraficaBarrasPanel(
+                List<Integer> promedios
         ) {
-            this.tiempos =
-                    tiempos == null
+            this.promedios =
+                    promedios == null
                             ? new ArrayList<>()
-                            : new ArrayList<>(tiempos);
+                            : new ArrayList<>(
+                                    promedios
+                            );
 
             setOpaque(false);
+
             setPreferredSize(
-                    new Dimension(650, 220)
+                    new Dimension(700, 270)
             );
         }
 
@@ -320,23 +378,18 @@ public class RestauranteDetalleFrame extends JFrame {
         ) {
             super.paintComponent(graphics);
 
-            Graphics2D g = (Graphics2D) graphics.create();
+            Graphics2D g =
+                    (Graphics2D) graphics.create();
 
             g.setRenderingHint(
                     RenderingHints.KEY_ANTIALIASING,
                     RenderingHints.VALUE_ANTIALIAS_ON
             );
 
-            if (tiempos.isEmpty()) {
-                dibujarMensajeVacio(g);
-                g.dispose();
-                return;
-            }
-
-            int margenIzquierdo = 50;
-            int margenDerecho = 25;
-            int margenSuperior = 25;
-            int margenInferior = 40;
+            int margenIzquierdo = 55;
+            int margenDerecho = 20;
+            int margenSuperior = 35;
+            int margenInferior = 55;
 
             int ancho = getWidth()
                     - margenIzquierdo
@@ -346,98 +399,323 @@ public class RestauranteDetalleFrame extends JFrame {
                     - margenSuperior
                     - margenInferior;
 
-            int maximo = Math.max(
-                    1,
-                    tiempos.stream()
-                            .mapToInt(Integer::intValue)
-                            .max()
-                            .orElse(1)
+            int maximo =
+                    calcularMaximo();
+
+            dibujarLineasGuia(
+                    g,
+                    margenIzquierdo,
+                    margenSuperior,
+                    ancho,
+                    alto,
+                    maximo
             );
 
-            g.setColor(Estilos.TEXTO_SECUNDARIO);
+            dibujarEjes(
+                    g,
+                    margenIzquierdo,
+                    margenSuperior,
+                    ancho,
+                    alto
+            );
+
+            dibujarBarras(
+                    g,
+                    margenIzquierdo,
+                    margenSuperior,
+                    ancho,
+                    alto,
+                    maximo
+            );
+
+            g.dispose();
+        }
+
+        private int calcularMaximo() {
+            int maximo = promedios.stream()
+                    .filter(valor -> valor != null)
+                    .mapToInt(Integer::intValue)
+                    .max()
+                    .orElse(10);
+
+            int multiplo = 5;
+
+            return Math.max(
+                    10,
+                    (
+                        (maximo + multiplo - 1)
+                        / multiplo
+                    ) * multiplo
+            );
+        }
+
+        private void dibujarLineasGuia(
+                Graphics2D g,
+                int margenIzquierdo,
+                int margenSuperior,
+                int ancho,
+                int alto,
+                int maximo
+        ) {
+            g.setFont(
+                    Estilos.fuente(
+                            Font.PLAIN,
+                            10
+                    )
+            );
+
+            for (int nivel = 0;
+                    nivel <= 4;
+                    nivel++) {
+
+                int valor =
+                        maximo * nivel / 4;
+
+                int y = margenSuperior
+                        + alto
+                        - alto * nivel / 4;
+
+                g.setColor(
+                        new Color(
+                                220,
+                                225,
+                                222
+                        )
+                );
+
+                g.drawLine(
+                        margenIzquierdo,
+                        y,
+                        margenIzquierdo + ancho,
+                        y
+                );
+
+                g.setColor(
+                        Estilos.TEXTO_SECUNDARIO
+                );
+
+                g.drawString(
+                        valor + " min",
+                        5,
+                        y + 4
+                );
+            }
+        }
+
+        private void dibujarEjes(
+                Graphics2D g,
+                int margenIzquierdo,
+                int margenSuperior,
+                int ancho,
+                int alto
+        ) {
+            int baseY =
+                    margenSuperior + alto;
+
+            g.setColor(
+                    Estilos.TEXTO_SECUNDARIO
+            );
 
             g.drawLine(
                     margenIzquierdo,
                     margenSuperior,
                     margenIzquierdo,
-                    margenSuperior + alto
+                    baseY
             );
 
             g.drawLine(
                     margenIzquierdo,
-                    margenSuperior + alto,
+                    baseY,
                     margenIzquierdo + ancho,
-                    margenSuperior + alto
+                    baseY
             );
+        }
 
-            g.drawString(
-                    maximo + " min",
-                    5,
-                    margenSuperior + 5
-            );
+        private void dibujarBarras(
+                Graphics2D g,
+                int margenIzquierdo,
+                int margenSuperior,
+                int ancho,
+                int alto,
+                int maximo
+        ) {
+            int cantidad =
+                    INTERVALOS.length;
 
-            g.drawString(
-                    "0 min",
-                    15,
-                    margenSuperior + alto
-            );
+            int espacio =
+                    ancho / cantidad;
 
-            g.setColor(Estilos.VERDE_MEDIO);
-            g.setStroke(new BasicStroke(3));
-
-            int xAnterior = 0;
-            int yAnterior = 0;
-
-            for (int i = 0; i < tiempos.size(); i++) {
-                int tiempo = tiempos.get(i);
-
-                int x = tiempos.size() == 1
-                        ? margenIzquierdo + ancho / 2
-                        : margenIzquierdo
-                          + i * ancho
-                          / (tiempos.size() - 1);
-
-                int y = margenSuperior
-                        + alto
-                        - tiempo * alto / maximo;
-
-                if (i > 0) {
-                    g.drawLine(
-                            xAnterior,
-                            yAnterior,
-                            x,
-                            y
+            int anchoBarra =
+                    Math.max(
+                            12,
+                            espacio - 14
                     );
+
+            int baseY =
+                    margenSuperior + alto;
+
+            g.setFont(
+                    Estilos.fuente(
+                            Font.PLAIN,
+                            10
+                    )
+            );
+
+            for (int i = 0;
+                    i < cantidad;
+                    i++) {
+
+                Integer valor =
+                        obtenerValor(i);
+
+                int x = margenIzquierdo
+                        + i * espacio
+                        + (
+                            espacio - anchoBarra
+                        ) / 2;
+
+                dibujarIntervalo(
+                        g,
+                        INTERVALOS[i],
+                        x,
+                        anchoBarra,
+                        baseY
+                );
+
+                if (valor == null) {
+                    dibujarSinDatos(
+                            g,
+                            x,
+                            anchoBarra,
+                            baseY
+                    );
+
+                    continue;
                 }
 
-                g.fillOval(
-                        x - 5,
-                        y - 5,
-                        10,
-                        10
+                int altoBarra =
+                        valor * alto
+                        / maximo;
+
+                int y =
+                        baseY - altoBarra;
+
+                g.setColor(
+                        Estilos.VERDE_MEDIO
                 );
 
-                g.drawString(
-                        String.valueOf(tiempo),
-                        x - 5,
-                        y - 10
+                g.fillRoundRect(
+                        x,
+                        y,
+                        anchoBarra,
+                        altoBarra,
+                        8,
+                        8
                 );
-                xAnterior = x;
-                yAnterior = y;
+
+                dibujarValor(
+                        g,
+                        valor,
+                        x,
+                        anchoBarra,
+                        y
+                );
             }
-            g.setColor(Estilos.TEXTO_SECUNDARIO);
-            g.drawString("Reportes del intervalo",margenIzquierdo+ ancho / 2- 60,getHeight() - 8);
-            g.dispose();
         }
-        private void dibujarMensajeVacio(
-                Graphics2D g
+
+        private Integer obtenerValor(
+                int posicion
         ) {
-            String mensaje ="Aún no hay suficientes reportes "+ "para mostrar la gráfica.";
-            FontMetrics metricas =g.getFontMetrics();
-            int x = (getWidth()- metricas.stringWidth(mensaje)) / 2;
-            int y = getHeight() / 2;
-            g.setColor(Estilos.TEXTO_SECUNDARIO);
-            g.drawString(mensaje, x, y);
+            if (posicion >= promedios.size()) {
+                return null;
+            }
+
+            return promedios.get(posicion);
+        }
+
+        private void dibujarValor(
+                Graphics2D g,
+                int valor,
+                int x,
+                int anchoBarra,
+                int y
+        ) {
+            String texto =
+                    String.valueOf(valor);
+
+            FontMetrics metricas =
+                    g.getFontMetrics();
+
+            int textoX = x
+                    + (
+                        anchoBarra
+                        - metricas.stringWidth(texto)
+                    ) / 2;
+
+            g.setColor(Estilos.TEXTO);
+
+            g.drawString(
+                    texto,
+                    textoX,
+                    y - 5
+            );
+        }
+
+        private void dibujarIntervalo(
+                Graphics2D g,
+                String intervalo,
+                int x,
+                int anchoBarra,
+                int baseY
+        ) {
+            FontMetrics metricas =
+                    g.getFontMetrics();
+
+            int textoX = x
+                    + (
+                        anchoBarra
+                        - metricas.stringWidth(
+                                intervalo
+                        )
+                    ) / 2;
+
+            g.setColor(
+                    Estilos.TEXTO_SECUNDARIO
+            );
+
+            g.drawString(
+                    intervalo,
+                    textoX,
+                    baseY + 20
+            );
+        }
+
+        private void dibujarSinDatos(
+                Graphics2D g,
+                int x,
+                int anchoBarra,
+                int baseY
+        ) {
+            String texto = "S/D";
+
+            FontMetrics metricas =
+                    g.getFontMetrics();
+
+            int textoX = x
+                    + (
+                        anchoBarra
+                        - metricas.stringWidth(texto)
+                    ) / 2;
+
+            g.setColor(
+                    Estilos.TEXTO_SECUNDARIO
+            );
+
+            g.drawString(
+                    texto,
+                    textoX,
+                    baseY - 8
+            );
         }
     }
 }
