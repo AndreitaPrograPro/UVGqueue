@@ -688,19 +688,9 @@ public class EstudianteFrame extends JFrame {
                 Font.PLAIN,
                 14
         );
-
-        DateTimeFormatter formato =
-                DateTimeFormatter.ofPattern(
-                        "dd/MM/yyyy HH:mm"
-                );
-
-        JLabel fecha = crearEtiqueta(
-                "Fecha: "
-                        + reporte.getFechaHora().format(formato),
-                Estilos.TEXTO_SECUNDARIO,
-                Font.PLAIN,
-                13
-        );
+        DateTimeFormatter formato =DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        JLabel fecha = crearEtiqueta("Fecha: "+ reporte.getFechaHora().format(formato),Estilos.TEXTO_SECUNDARIO,
+                Font.PLAIN,13);
         tarjeta.add(restaurante);
         tarjeta.add(Box.createVerticalStrut(12));
         tarjeta.add(personas);
@@ -723,8 +713,10 @@ public class EstudianteFrame extends JFrame {
                         archivo = "cafe_gitane.jpg";
                         break;
                         case "gogreen":
-                        case "go green":
                                 archivo = "gogreen.jfif";
+                                break;
+                        case "sarita":
+                                archivo= "sarita.jfif";
                                 break;
                         default:
                         archivo = "restaurante.png";
