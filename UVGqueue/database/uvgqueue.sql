@@ -84,6 +84,24 @@ CREATE TABLE IF NOT EXISTS favorito (
 );
 
 -- =========================================
+-- TABLA REPORTES_CIERRE
+-- =========================================
+
+CREATE TABLE IF NOT EXISTS reporte_cierre (
+    id_reporte_cierre INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    id_restaurante INT NOT NULL,
+    confirmacion ENUM('ABIERTO', 'CERRADO') NOT NULL,
+    fecha_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario),
+
+    FOREIGN KEY (id_restaurante)
+        REFERENCES restaurante(id_restaurante)
+);
+
+-- =========================================
 -- RESTAURANTES INICIALES
 -- =========================================
 
