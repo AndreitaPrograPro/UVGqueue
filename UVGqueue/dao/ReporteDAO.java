@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.time.LocalDateTime;
 
 import model.*;
 public class ReporteDAO {
@@ -34,30 +35,68 @@ public class ReporteDAO {
         }
         
     }
-    public Map<String, ArrayList<Integer>> obtenerTiempos() {
-        Map<String, ArrayList<Integer>> tiempos = new HashMap<>();
-        String sql = "SELECT restaurante.nombre, reporte.tiempo_espera "
-                + "FROM reporte "
-                + "INNER JOIN restaurante ON reporte.id_restaurante = "
-                + "restaurante.id_restaurante";
-        try (
-            Connection connection = Databaseconnection.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery()
-        ) {
-            while (resultSet.next()) {
-                String nombre = resultSet.getString("nombre");
-                int tiempo = resultSet.getInt("tiempo_espera");
+    public Map<String, ArrayList<Integer>> obtenerTiempos(LocalDateTime fechaInicio,LocalDateTime fechaFin) {
+        Map<String, ArrayList<Integer>> tiempos =
+                new HashMap<>();
+        String sql = """
+                SELECT
+                    restaurante.nombre,
+                    reporte.tiempo_espera
+                FROM reporte
+                INNER JOIN restaurante
+                    ON reporte.id_restaurante =
+                    restaurante.id_restaurante
+                WHERE reporte.fecha_hora >= ?
+                AND reporte.fecha_hora <= ?
+                """;
 
-                tiempos.computeIfAbsent(
-                        nombre,
-                        clave -> new ArrayList<>()
-                ).add(tiempo);
+        try (
+            Connection connection =
+                    Databaseconnection.getConnection();
+
+            PreparedStatement statement =
+                    connection.prepareStatement(sql)
+        ) {
+            statement.setTimestamp(
+                    1,
+                    Timestamp.valueOf(fechaInicio)
+            );
+
+            statement.setTimestamp(
+                    2,
+                    Timestamp.valueOf(fechaFin)
+            );
+
+            try (
+                ResultSet resultSet =
+                        statement.executeQuery()
+            ) {
+                while (resultSet.next()) {
+
+                    String nombre =
+                            resultSet.getString("nombre");
+
+                    int tiempo =
+                            resultSet.getInt(
+                                    "tiempo_espera"
+                            );
+
+                    tiempos.computeIfAbsent(
+                            nombre,
+                            clave -> new ArrayList<>()
+                    ).add(tiempo);
+                }
             }
-        } catch (SQLException e) {
-            System.out.println("No fue posible obtener los tiempos.");
-            e.printStackTrace();
+
+        } catch (SQLException excepcion) {
+
+            System.out.println(
+                    "No fue posible obtener los tiempos."
+            );
+
+            excepcion.printStackTrace();
         }
+
         return tiempos;
     }
     public ArrayList<Reporte> obtenerPorUsuario(Usuario usuario) {
@@ -95,4 +134,5 @@ public class ReporteDAO {
         }
         return reportes;
     }
+
 }

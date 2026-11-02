@@ -70,11 +70,7 @@ public class UsuarioController {
             RestauranteController restauranteController =
                     new RestauranteController(estudianteFrame);
 
-            ReporteController reporteController =
-                    new ReporteController(
-                            estudianteFrame,
-                            usuarioActivo
-                    );
+                new ReporteController(estudianteFrame,usuarioActivo);
 
             new FavoritoController(
                     estudianteFrame,
@@ -87,11 +83,6 @@ public class UsuarioController {
                     restauranteController
             );
 
-            estudianteFrame.getBotonActualizar()
-                    .addActionListener(evento -> {
-                        actualizarTiempos(estudianteFrame);
-                    });
-
         } else {
 
             loginView.mostrarMensaje(
@@ -102,47 +93,28 @@ public class UsuarioController {
     }
 
     private void procesarRegistro() {
-
         String nombre = loginView.getRegUser();
         String correo = loginView.getRegEmail();
         String contrasena = loginView.getRegPassword();
         String confirmacion = loginView.getRegConfirmPassword();
-
-        boolean registro = registrarUsuario(
-                nombre,
-                correo,
-                contrasena,
-                confirmacion
-        );
-
+        boolean registro = registrarUsuario(nombre,correo,contrasena,confirmacion);
         if (registro) {
-
             loginView.mostrarMensaje(
                     "Registro exitoso",
                     "La cuenta fue creada correctamente"
             );
-
             loginView.limpiarRegistro();
             loginView.mostrarLogin();
         }
     }
-
-    public boolean registrarUsuario(
-            String nombre,
-            String correo,
-            String contrasena,
-            String confirmacion) {
-
+    public boolean registrarUsuario(String nombre,String correo,String contrasena,String confirmacion) {
         if (!validarNombre(nombre)) {
-
             loginView.mostrarMensaje(
                     "Registro",
                     "El nombre debe tener al menos tres caracteres"
             );
-
             return false;
         }
-
         if (!validarCorreo(correo)) {
 
             loginView.mostrarMensaje(
@@ -401,62 +373,5 @@ public class UsuarioController {
             especificacion.clearPassword();
         }
     }
-
-    private void actualizarTiempos(
-            EstudianteFrame estudianteFrame) {
-
-        ReporteDAO reporteDAO = new ReporteDAO();
-
-        new javax.swing.SwingWorker<
-                java.util.Map<String, Integer>, Void>() {
-
-            @Override
-            protected java.util.Map<String, Integer>
-                    doInBackground() {
-
-                java.util.Map<String,
-                        java.util.ArrayList<Integer>> tiempos =
-                        reporteDAO.obtenerTiempos();
-
-                java.util.Map<String, Integer> promedios =
-                        new java.util.HashMap<>();
-
-                for (java.util.Map.Entry<String,
-                        java.util.ArrayList<Integer>> entrada
-                        : tiempos.entrySet()) {
-
-                    java.util.ArrayList<Integer> lista =
-                            entrada.getValue();
-
-                    if (!lista.isEmpty()) {
-
-                        double promedio = lista.stream()
-                                .mapToInt(Integer::intValue)
-                                .average()
-                                .orElse(0);
-
-                        promedios.put(
-                                entrada.getKey(),
-                                (int) Math.round(promedio)
-                        );
-                    }
-                }
-
-                return promedios;
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    estudianteFrame.mostrarPromedios(get());
-                } catch (Exception e) {
-                    estudianteFrame.mostrarError(
-                            "No fue posible actualizar los tiempos."
-                    );
-                    e.printStackTrace();
-                }
-            }
-
-        }.execute();
-    }
+    
 }
