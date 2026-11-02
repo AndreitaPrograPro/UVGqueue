@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS restaurante (
     estado ENUM(
         'ABIERTO',
         'CERRADO'
-    ) NOT NULL DEFAULT 'CERRADO'
+    ) NOT NULL DEFAULT 'CERRADO',
+    hora_apertura TIME NOT NULL,
+    hora_cierre TIME NOT NULL
 );
 
 -- =========================================
@@ -85,14 +87,14 @@ CREATE TABLE IF NOT EXISTS favorito (
 -- RESTAURANTES INICIALES
 -- =========================================
 
-INSERT IGNORE INTO restaurante
-(nombre, ubicacion, estado)
-VALUES
-('Gitane', 'Cafetería CIT', 'ABIERTO'),
-('GoGreen', 'Cafetería CIT', 'ABIERTO'),
-('Mixtas Frankfurt', 'Cafetería CIT', 'ABIERTO'),
-('Panitos', 'Cafetería CIT', 'ABIERTO'),
-('&Cafe', 'CIT 6', 'ABIERTO'),
-('Barista', 'Patio CIT', 'ABIERTO'),
-('Golden Harvest', 'Puerta 6', 'ABIERTO'),
-('Sarita', 'Edificio F', 'ABIERTO');
+INSERT IGNORE INTO restaurante (
+    nombre, ubicacion, estado, hora_apertura, hora_cierre
+) VALUES
+('Gitane', 'Cafetería CIT', 'ABIERTO', '06:00:00', '20:00:00'),
+('GoGreen', 'Cafetería CIT', 'ABIERTO', '06:00:00', '20:00:00'),
+('Mixtas Frankfurt', 'Cafetería CIT', 'ABIERTO', '06:00:00', '20:00:00'),
+('Panitos', 'Cafetería CIT', 'ABIERTO', '06:00:00', '20:00:00'),
+('&Cafe', 'CIT 6', 'ABIERTO', '06:00:00', '20:00:00'),
+('Barista', 'Patio CIT', 'ABIERTO', '06:00:00', '20:00:00'),
+('Golden Harvest', 'Puerta 6', 'ABIERTO', '06:00:00', '20:00:00'),
+('Sarita', 'Edificio F', 'ABIERTO', '06:00:00', '20:00:00');
