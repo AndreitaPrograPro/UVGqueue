@@ -1,5 +1,7 @@
 package model;
 
 public enum EstadoRestaurante {
-    ABIERTO,CERRADO
+    ABIERTO,
+    POSIBLEMENTE_CERRADO,
+    CERRADO
 }

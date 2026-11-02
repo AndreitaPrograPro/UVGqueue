@@ -1,11 +1,12 @@
 package view;
 
 import java.awt.*;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
+import java.time.format.DateTimeFormatter;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -40,6 +41,8 @@ public class EstudianteFrame extends JFrame {
     private List<Restaurante> restaurantes = new ArrayList<>();
     private Consumer<Restaurante> accionReportar;
     private Consumer<Restaurante> accionAlternarFavorito;
+    private BiConsumer<Restaurante, Boolean> accionVerificarCierre;
+    private boolean mostrandoReportes = false;
     private Map<String, Integer> tiemposPromedio = new HashMap<>();
     private Set<String> favoritos = new HashSet<>();
     private boolean soloFavoritos;
@@ -292,7 +295,7 @@ public class EstudianteFrame extends JFrame {
             List<Restaurante> restaurantes
     ) {
         this.restaurantes = new ArrayList<>(restaurantes);
-        aplicarFiltros();
+        if (!mostrandoReportes) aplicarFiltros();
     }
 
     private void aplicarFiltros() {
@@ -316,9 +319,7 @@ public class EstudianteFrame extends JFrame {
                     nombre.contains(texto)
                     || ubicacion.contains(texto);
 
-            boolean abierto =
-                    restaurante.getEstado()
-                    == EstadoRestaurante.ABIERTO;
+            boolean abierto = restaurante.getEstadoActual() == EstadoRestaurante.ABIERTO;
 
             boolean coincideEstado =
                     "Todos".equals(filtro)
@@ -359,7 +360,7 @@ public class EstudianteFrame extends JFrame {
 
         long abiertos = restaurantes.stream()
                 .filter(restaurante ->
-                        restaurante.getEstado()
+                        restaurante.getEstadoActual()
                         == EstadoRestaurante.ABIERTO)
                 .count();
 
@@ -393,10 +394,13 @@ public class EstudianteFrame extends JFrame {
                 BorderFactory.createEmptyBorder(20, 22, 20, 22)
         );
 
-        tarjeta.setPreferredSize(new Dimension(400, 230));
+        tarjeta.setPreferredSize(new Dimension(400, 315));
 
-        boolean abierto = restaurante.getEstado()
+        boolean abierto = restaurante.getEstadoActual()
                 == EstadoRestaurante.ABIERTO;
+        boolean posible = restaurante.getEstadoActual()
+                == EstadoRestaurante.POSIBLEMENTE_CERRADO;
+        boolean enHorario = restaurante.estaEnHorario();
 
         JLabel nombre = crearEtiqueta(
                 restaurante.getNombre(),
@@ -413,8 +417,9 @@ public class EstudianteFrame extends JFrame {
         );
 
         JLabel estado = crearEtiqueta(
-                abierto ? "● ABIERTO" : "● CERRADO",
-                abierto ? Estilos.VERDE_OSCURO : Estilos.ERROR,
+                (abierto ? "● ABIERTO" : posible ? "● POSIBLEMENTE CERRADO"
+                : enHorario ? "● CERRADO" : "● CERRADO POR HORARIO"),
+                abierto ? Estilos.VERDE_OSCURO : posible ? Estilos.AMARILLO : Estilos.ERROR,
                 Font.BOLD,
                 13
         );
@@ -432,7 +437,7 @@ public class EstudianteFrame extends JFrame {
                 14
         );
 
-        JButton botonReportar = new JButton("Agregar reporte");
+        JButton botonReportar = new JButton("Agregar reporte de fila");
 
         Estilos.estilizarBotonPrincipal(botonReportar);
         botonReportar.setEnabled(abierto);
@@ -461,15 +466,40 @@ public class EstudianteFrame extends JFrame {
                 }
         });
 
-        JPanel botones = new JPanel(
-                new FlowLayout(FlowLayout.LEFT, 10, 0)
-        );
+        JButton botonAbierto = new JButton("Confirmar que está abierto");
+        JButton botonCerrado = new JButton("Reportar restaurante cerrado");
+        Estilos.estilizarBotonPrincipal(botonAbierto);
+        Estilos.estilizarBotonPrincipal(botonCerrado);
+        botonAbierto.setEnabled(enHorario);
+        botonCerrado.setEnabled(enHorario);
+        botonAbierto.addActionListener(e -> {
+            if (accionVerificarCierre != null) accionVerificarCierre.accept(restaurante, false);
+        });
+        botonCerrado.addActionListener(e -> {
+            if (accionVerificarCierre != null) accionVerificarCierre.accept(restaurante, true);
+        });
 
-        botones.setOpaque(false);
-        botones.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // GridLayout distribuye el espacio entre dos botones sin cortar el texto.
+        JPanel filaPrincipal = new JPanel(new GridLayout(1, 2, 10, 0));
+        filaPrincipal.setOpaque(false);
+        filaPrincipal.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filaPrincipal.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        filaPrincipal.add(botonReportar);
+        filaPrincipal.add(botonFavorito);
 
-        botones.add(botonReportar);
-        botones.add(botonFavorito);
+        JPanel filaVerificacion = new JPanel(new GridLayout(1, 2, 10, 0));
+        filaVerificacion.setOpaque(false);
+        filaVerificacion.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filaVerificacion.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        filaVerificacion.add(botonAbierto);
+        filaVerificacion.add(botonCerrado);
+
+        // Botones con letra ligeramente menor para que quepa todo el texto.
+        for (JButton b : new JButton[]{botonReportar, botonFavorito,
+                botonAbierto, botonCerrado}) {
+            b.setFont(Estilos.fuente(Font.BOLD, 11));
+            b.setMargin(new Insets(3, 4, 3, 4));
+        }
 
         tarjeta.add(nombre);
         tarjeta.add(Box.createVerticalStrut(6));
@@ -479,10 +509,16 @@ public class EstudianteFrame extends JFrame {
         tarjeta.add(Box.createVerticalStrut(8));
         tarjeta.add(tiempo);
         tarjeta.add(Box.createVerticalGlue());
-        tarjeta.add(botones);
+        tarjeta.add(filaPrincipal);
+        tarjeta.add(Box.createVerticalStrut(8));
+        tarjeta.add(filaVerificacion);
 
         return tarjeta;
 }
+    public void setAccionVerificarCierre(BiConsumer<Restaurante, Boolean> accion) {
+        this.accionVerificarCierre = accion;
+    }
+
     public JButton getBotonActualizar() {
         return botonActualizar;
     }
@@ -515,6 +551,7 @@ public class EstudianteFrame extends JFrame {
     }
 
     public void mostrarSoloFavoritos(boolean soloFavoritos) {
+        this.mostrandoReportes = false;
         this.soloFavoritos = soloFavoritos;
         etiquetaTitulo.setText(
                 soloFavoritos
@@ -569,6 +606,7 @@ public class EstudianteFrame extends JFrame {
     }
     public void mostrarMisReportes(List<Reporte> reportes
         ) {
+        mostrandoReportes = true;
         panelTarjetas.removeAll();
         etiquetaTitulo.setText("Mis reportes");
         botonInicio.setBackground(Estilos.VERDE_OSCURO);
@@ -684,8 +722,10 @@ public class EstudianteFrame extends JFrame {
                         case "gitane":
                         archivo = "cafe_gitane.jpg";
                         break;
+                        case "gogreen":
                         case "go green":
                                 archivo = "gogreen.jfif";
+                                break;
                         default:
                         archivo = "restaurante.png";
                 }

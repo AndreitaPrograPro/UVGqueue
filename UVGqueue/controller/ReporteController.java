@@ -1,5 +1,6 @@
 package controller;
 import dao.ReporteDAO;
+import dao.RestauranteDAO;
 import model.*;
 import view.*;
 import java.util.ArrayList;
@@ -8,26 +9,48 @@ import java.util.Map;
 public class ReporteController {
     private final EstudianteFrame estudianteFrame;
     private final ReporteDAO reporteDAO;
+    private final RestauranteDAO restauranteDAO;
     private final Usuario usuarioActivo;
-    public ReporteController(EstudianteFrame estudianteFrame,Usuario usuarioActivo) {
+
+    public ReporteController(
+            EstudianteFrame estudianteFrame,
+            Usuario usuarioActivo) {
+
         this.estudianteFrame = estudianteFrame;
         this.usuarioActivo = usuarioActivo;
         this.reporteDAO = new ReporteDAO();
-        estudianteFrame.setAccionReportar(this::procesarReporte);
-        estudianteFrame.setAccionVerReportes(this::cargarMisReportes);
+        this.restauranteDAO = new RestauranteDAO();
+
+        estudianteFrame.setAccionReportar(
+                this::procesarReporte
+        );
+
+        // Conservamos la sección Mis reportes
+        estudianteFrame.setAccionVerReportes(
+                this::cargarMisReportes
+        );
+
         cargarPromedios();
-        }
+    }
+
     private void procesarReporte(Restaurante restaurante) {
-        if (restaurante.getEstado() != EstadoRestaurante.ABIERTO) {
+
+        // Verificar el estado actual desde MariaDB
+        if (!restauranteDisponible(restaurante)) {
+
             estudianteFrame.mostrarError(
-                    "El restaurante está cerrado."
+                    "Este restaurante no está disponible "
+                    + "para reportes de fila."
             );
             return;
         }
         FormularioView formulario = new FormularioView();
         formulario.setAccionEnviar(
                 (cantidadPersonas, tiempoAtencion) -> {
-                    int tiempoEspera = (int) Math.round(tiempoAtencion);
+
+                    int tiempoEspera =
+                            (int) Math.round(tiempoAtencion);
+
                     guardarReporte(
                             restaurante,
                             cantidadPersonas,
@@ -36,14 +59,41 @@ public class ReporteController {
                     );
                 }
         );
+
         formulario.setVisible(true);
+    }
+    private boolean restauranteDisponible(
+            Restaurante restaurante) {
+
+        ArrayList<Restaurante> restaurantes =
+                restauranteDAO.obtenerTodos();
+
+        for (Restaurante actual : restaurantes) {
+
+            if (actual.getNombre().equals(
+                    restaurante.getNombre())) {
+
+                return actual.permiteReportes();
+            }
+        }
+        return false;
     }
     private void guardarReporte(
             Restaurante restaurante,
             int cantidadPersonas,
             int tiempoEspera,
-            FormularioView formulario
-    ) {
+            FormularioView formulario) {
+
+        if (!restauranteDisponible(restaurante)) {
+
+            estudianteFrame.mostrarError(
+                    "El restaurante ya no está disponible. "
+                    + "No se puede guardar el reporte."
+            );
+
+            return;
+        }
+
         Reporte reporte = new Reporte(
                 usuarioActivo,
                 cantidadPersonas,
@@ -57,24 +107,25 @@ public class ReporteController {
             restaurante.agregarReporte(reporte);
             formulario.dispose();
             cargarPromedios();
-            
+
             estudianteFrame.mostrarMensaje(
                     "Reporte registrado",
                     "Gracias por compartir la información."
             );
-            formulario.dispose();
-            cargarPromedios();
+
         } else {
             estudianteFrame.mostrarError(
                     "No fue posible guardar el reporte."
             );
         }
     }
-    
     public void cargarPromedios() {
         Map<String, ArrayList<Integer>> tiempos =
                 reporteDAO.obtenerTiempos();
-        Map<String, Integer> promedios = new HashMap<>();
+
+        Map<String, Integer> promedios =
+                new HashMap<>();
+
         for (String restaurante : tiempos.keySet()) {
 
             promedios.put(
@@ -86,7 +137,10 @@ public class ReporteController {
         }
         estudianteFrame.mostrarPromedios(promedios);
     }
-    private int calcularPromedio(ArrayList<Integer> tiempos) {
+
+    private int calcularPromedio(
+            ArrayList<Integer> tiempos) {
+
         if (tiempos == null || tiempos.isEmpty()) {
             return 0;
         }
@@ -98,8 +152,12 @@ public class ReporteController {
                 (float) suma / tiempos.size()
         );
     }
-    private void cargarMisReportes(){
-        ArrayList<Reporte> reportes = reporteDAO.obtenerPorUsuario(usuarioActivo);
+
+    private void cargarMisReportes() {
+
+        ArrayList<Reporte> reportes =
+                reporteDAO.obtenerPorUsuario(usuarioActivo);
+
         estudianteFrame.mostrarMisReportes(reportes);
     }
 }
