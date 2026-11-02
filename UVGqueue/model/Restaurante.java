@@ -82,13 +82,11 @@ public class Restaurante {
         }
 
         if (horaApertura.isBefore(horaCierre)) {
-            return true;
-            // return !ahora.isBefore(horaApertura)
-                    // && ahora.isBefore(horaCierre);
+             return !ahora.isBefore(horaApertura)
+                     && ahora.isBefore(horaCierre);
         }
-        return true;
-        // return !ahora.isBefore(horaApertura)
-        //         || ahora.isBefore(horaCierre);
+        return !ahora.isBefore(horaApertura)
+                 || ahora.isBefore(horaCierre);
     }
 
     public boolean permiteReportes() {
