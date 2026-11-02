@@ -3,6 +3,7 @@ package controller;
 import dao.ReporteDAO;
 import dao.RestauranteDAO;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,8 @@ public class ReporteController {
                 estudianteFrame.getBotonActualizar().addActionListener(
                         evento -> cargarPromedios()
                 );
+                estudianteFrame.setAccionVerDetalle(
+                this::mostrarDetalleRestaurante);
 
                 cargarPromedios();
         }
@@ -140,5 +143,42 @@ public class ReporteController {
                 estudianteFrame.mostrarMisReportes(
                         reporteDAO.obtenerPorUsuario(usuarioActivo)
                 );
+        }
+        private void mostrarDetalleRestaurante(
+                        Restaurante restaurante
+                ) {
+                LocalDateTime fechaInicio =
+                        LocalDateTime.of(
+                                2026, 1, 1,
+                                0, 0
+                        );
+
+                LocalDateTime fechaFin =
+                        LocalDateTime.now();
+
+                Map<String, ArrayList<Integer>> tiemposPorRestaurante =
+                        reporteDAO.obtenerTiempos(
+                                fechaInicio,
+                                fechaFin
+                        );
+
+                ArrayList<Integer> tiempos =
+                        tiemposPorRestaurante.getOrDefault(
+                                restaurante.getNombre(),
+                                new ArrayList<>()
+                        );
+
+                Integer promedio = tiempos.isEmpty()
+                        ? null
+                        : calcularPromedio(tiempos);
+
+                RestauranteDetalleFrame detalle =
+                        new RestauranteDetalleFrame(
+                                restaurante,
+                                promedio,
+                                tiempos
+                        );
+
+                detalle.setVisible(true);
         }
 }
