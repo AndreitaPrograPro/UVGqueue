@@ -7,22 +7,17 @@ import model.Restaurante;
 import view.EstudianteFrame;
 
 public class RestauranteController {
-
     private final EstudianteFrame estudianteFrame;
     private final RestauranteDAO restauranteDAO;
     private Timer temporizador;
-
     public RestauranteController(
             EstudianteFrame estudianteFrame) {
-
         this.estudianteFrame = estudianteFrame;
         this.restauranteDAO = new RestauranteDAO();
-
         registrarEventos();
         cargarRestaurantes();
         iniciarActualizacionAutomatica();
     }
-
     private void registrarEventos() {
 
         estudianteFrame.getBotonActualizar()

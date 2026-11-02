@@ -71,7 +71,6 @@ public class Restaurante {
     }
 
     public boolean estaEnHorario() {
-
         if (horaApertura == null || horaCierre == null) {
             return false;
         }
@@ -83,13 +82,13 @@ public class Restaurante {
         }
 
         if (horaApertura.isBefore(horaCierre)) {
-
-            return !ahora.isBefore(horaApertura)
-                    && ahora.isBefore(horaCierre);
+            return true;
+            // return !ahora.isBefore(horaApertura)
+                    // && ahora.isBefore(horaCierre);
         }
-
-        return !ahora.isBefore(horaApertura)
-                || ahora.isBefore(horaCierre);
+        return true;
+        // return !ahora.isBefore(horaApertura)
+        //         || ahora.isBefore(horaCierre);
     }
 
     public boolean permiteReportes() {
