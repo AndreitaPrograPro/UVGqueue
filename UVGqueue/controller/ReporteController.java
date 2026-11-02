@@ -55,6 +55,9 @@ public class ReporteController {
         );
         if (registrado) {
             restaurante.agregarReporte(reporte);
+            formulario.dispose();
+            cargarPromedios();
+            
             estudianteFrame.mostrarMensaje(
                     "Reporte registrado",
                     "Gracias por compartir la información."
