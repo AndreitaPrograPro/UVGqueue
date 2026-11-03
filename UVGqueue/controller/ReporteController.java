@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import javax.swing.Timer;
 import model.*;
 import view.*;
 
@@ -15,6 +16,7 @@ public class ReporteController {
         private final ReporteDAO reporteDAO;
         private final RestauranteDAO restauranteDAO;
         private final Usuario usuarioActivo;
+        private final Timer temporizadorPromedios;
         public ReporteController(
                 EstudianteFrame estudianteFrame,
                 Usuario usuarioActivo
@@ -32,6 +34,12 @@ public class ReporteController {
                 this::mostrarDetalleRestaurante);
 
                 cargarPromedios();
+
+                temporizadorPromedios = new Timer(
+                        60000,
+                        evento -> cargarPromedios()
+                );
+                temporizadorPromedios.start();
         }
         private void procesarReporte(Restaurante restaurante) {
 

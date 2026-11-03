@@ -1,753 +1,669 @@
 package view;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.Insets;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Consumer;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
-import java.time.format.DateTimeFormatter;
-import javax.swing.*;
+import java.util.function.Consumer;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.Timer;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-
 import model.EstadoRestaurante;
 import model.Reporte;
 import model.Restaurante;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
+/** Ventana principal del estudiante con navegación, filtros y sugerencias. */
 public class EstudianteFrame extends JFrame {
-        private final JPanel panelTarjetas =
-                new JPanel(new GridLayout(0, 2, 18, 18));
-        private final JTextField campoBusqueda = new JTextField();
-        private final JComboBox<String> filtroEstado =
-                new JComboBox<>(new String[]{"Todos", "Abiertos", "Cerrados"});
-        private final JLabel etiquetaSaludo =
-                new JLabel("Hola, estudiante");
-        private final JLabel etiquetaResumen =
-                new JLabel("0 restaurantes");
-        private final JButton botonActualizar =
-                new JButton("");
-        private final JButton botonInicio =
-                crearBotonMenu("Inicio", true);
-        private final JButton botonFavoritos =
-                crearBotonMenu("Favoritos", false);
-        private final JButton botonReportes = crearBotonMenu("Mis reportes", false);
-        private final JLabel etiquetaTitulo = crearEtiqueta("¿Dónde quieres comer hoy?",Estilos.TEXTO,Font.BOLD,28);
-        private List<Restaurante> restaurantes = new ArrayList<>();
-        private Consumer<Restaurante> accionReportar;
-        private Consumer<Restaurante> accionAlternarFavorito;
-        private BiConsumer<Restaurante, Boolean> accionVerificarCierre;
-        private boolean mostrandoReportes = false;
-        private Map<String, Integer> tiemposPromedio = new HashMap<>();
-        private Set<String> favoritos = new HashSet<>();
-        private boolean soloFavoritos;
-        private Runnable accionVerReportes;
-        private Consumer<Restaurante> accionVerDetalle;
-        public EstudianteFrame() {
-                this("estudiante");
-        }
-        public EstudianteFrame(String nombreUsuario) {
-                etiquetaSaludo.setText("Hola, " + nombreUsuario);
-                configurarVentana();
-                construirInterfaz();
-                botonActualizar.setIcon(Estilos.cargarIcono("actualizar.png", 20, 20));
-                botonFavoritos.setIcon(Estilos.cargarIcono("Favoritos.png", 20, 20));
-                botonActualizar.setIconTextGap(10);
-                botonFavoritos.setIconTextGap(12);
-                registrarEventos();
-        }
-        private void configurarVentana() {
-                setTitle("UVGqueue - Restaurantes");
-                setDefaultCloseOperation(EXIT_ON_CLOSE);
-                setMinimumSize(new Dimension(980, 650));
-                setSize(1180, 760);
-                setLocationRelativeTo(null);
-                getContentPane().setBackground(Estilos.FONDO);
-        }
+    private static final int ANCHO_LATERAL = 238;
+    private static final int ANCHO_LATERAL_CONTRAIDO = 64;
+    private final GridLayout rejilla = new GridLayout(0, 2, 18, 18);
+    private final JPanel panelTarjetas = new JPanel(rejilla);
+    private final JTextField campoBusqueda = new JTextField();
+    private final JComboBox<String> filtroEstado = new JComboBox<>(
+            new String[]{"Todos", "Abiertos", "Cerrados"});
+    private final JLabel etiquetaSaludo = new JLabel("Hola, estudiante");
+    private final JLabel etiquetaResumen = new JLabel("0 restaurantes");
+    private final JButton botonActualizar = new BotonAnimado(
+            "Actualizar", Estilos.VERDE_MEDIO, Estilos.VERDE_OSCURO);
+    private final BotonNavegacion botonInicio =
+            new BotonNavegacion("⌂   Inicio", true);
+    private final BotonNavegacion botonFavoritos =
+            new BotonNavegacion("♡   Favoritos", false);
+    private final BotonNavegacion botonReportes =
+            new BotonNavegacion("≋   Mis reportes", false);
+    private final JLabel etiquetaTitulo = new JLabel("¿Dónde quieres comer hoy?");
+    private final JPanel contenidoQuick =
+            new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+    private final PanelRedondeado panelQuick =
+            new PanelRedondeado(24, Estilos.MENTA);
+    private JPanel barraLateral;
+    private Timer animacionLateral;
+    private int anchoLateralActual = ANCHO_LATERAL;
+    private int anchoLateralObjetivo = ANCHO_LATERAL;
 
-        private void construirInterfaz() {
-                setLayout(new BorderLayout());
-                add(crearBarraLateral(), BorderLayout.WEST);
-                add(crearContenido(), BorderLayout.CENTER);
-        }
+    private List<Restaurante> restaurantes = new ArrayList<>();
+    private Map<String, Integer> tiemposPromedio = new HashMap<>();
+    private Set<String> favoritos = new HashSet<>();
+    private boolean soloFavoritos;
+    private boolean mostrandoReportes;
+    private Consumer<Restaurante> accionReportar;
+    private Consumer<Restaurante> accionAlternarFavorito;
+    private Consumer<Restaurante> accionVerDetalle;
+    private BiConsumer<Restaurante, Boolean> accionVerificarCierre;
+    private Runnable accionVerReportes;
 
-        private JPanel crearBarraLateral() {
-                JPanel lateral = new JPanel();
-                lateral.setBackground(Estilos.VERDE_OSCURO);
-                lateral.setPreferredSize(new Dimension(220, 0));
-                lateral.setBorder(
-                        BorderFactory.createEmptyBorder(28, 20, 24, 20)
-                );
-                lateral.setLayout(
-                        new BoxLayout(lateral, BoxLayout.Y_AXIS)
-                );
+    public EstudianteFrame() {
+        this("estudiante");
+    }
 
-                JLabel logo = crearEtiqueta(
-                        "UVGqueue",
-                        Color.WHITE,
-                        Font.BOLD,
-                        25
-                );
+    public EstudianteFrame(String nombreUsuario) {
+        Estilos.instalarLookAndFeel();
+        etiquetaSaludo.setText("Qué gusto verte, " + nombreUsuario);
+        configurarVentana();
+        construirInterfaz();
+        registrarEventos();
+    }
 
-                JLabel lema = crearEtiqueta(
-                        "Tu tiempo importa",
-                        new Color(190, 222, 207),
-                        Font.PLAIN,
-                        12
-                );
-                lateral.add(logo);
-                lateral.add(Box.createVerticalStrut(4));
-                lateral.add(lema);
-                lateral.add(Box.createVerticalStrut(48));
-                lateral.add(botonInicio);
-                lateral.add(Box.createVerticalStrut(10));
-                lateral.add(botonFavoritos);
-                lateral.add(Box.createVerticalStrut(10));
-                lateral.add(botonReportes);
-                lateral.add(Box.createVerticalGlue());
-                lateral.add(crearEtiqueta(
-                        "UVGqueue 2026",
-                        new Color(151, 194, 174),
-                        Font.PLAIN,
-                        11
-                ));
+    private void configurarVentana() {
+        setTitle("UVGqueue · Tu tiempo importa");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setMinimumSize(new Dimension(1040, 690));
+        setSize(1280, 820);
+        setLocationRelativeTo(null);
+        getContentPane().setBackground(Estilos.FONDO);
+    }
 
-                return lateral;
-        }
+    private void construirInterfaz() {
+        setLayout(new BorderLayout());
+        barraLateral = crearBarraLateral();
+        add(barraLateral, BorderLayout.WEST);
+        add(crearContenido(), BorderLayout.CENTER);
+    }
 
-        private JLabel crearEtiqueta(
-                String texto,
-                Color color,
-                int estilo,
-                int tamaño
-        ) {
-                JLabel etiqueta = new JLabel(texto);
-                etiqueta.setForeground(color);
-                etiqueta.setFont(Estilos.fuente(estilo, tamaño));
-                etiqueta.setAlignmentX(Component.LEFT_ALIGNMENT);
-                return etiqueta;
-        }
-        private JButton crearBotonMenu(
-                String texto,
-                boolean seleccionado
-        ) {
-                JButton boton = new JButton(texto);
-                boton.setHorizontalAlignment(SwingConstants.LEFT);
-                boton.setMaximumSize(
-                        new Dimension(Integer.MAX_VALUE, 44)
-                );
-                boton.setForeground(Color.WHITE);
-                boton.setBackground(
-                        seleccionado
-                                ? Estilos.VERDE_MEDIO
-                                : Estilos.VERDE_OSCURO
-                );
-                boton.setBorder(
-                        BorderFactory.createEmptyBorder(0, 16, 0, 16)
-                );
-                boton.setFocusPainted(false);
-                boton.setOpaque(true);
-                boton.setBorderPainted(false);
-                boton.setCursor(
-                        Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                );
+    private JPanel crearBarraLateral() {
+        JPanel lateral = new JPanel();
+        lateral.setBackground(Estilos.VERDE_OSCURO);
+        lateral.setPreferredSize(new Dimension(ANCHO_LATERAL, 0));
+        lateral.setBorder(BorderFactory.createEmptyBorder(30, 22, 24, 22));
+        lateral.setLayout(new BoxLayout(lateral, BoxLayout.Y_AXIS));
 
-                return boton;
-        }
+        JLabel logo = new JLabel("UVGqueue");
+        logo.setFont(Estilos.fuenteCaligrafica(34));
+        logo.setForeground(Color.WHITE);
+        logo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lema = crearEtiqueta("Tu tiempo importa",
+                new Color(187, 226, 208), Font.PLAIN, 12);
 
-        private JPanel crearContenido() {
-                JPanel contenido =
-                        new JPanel(new BorderLayout(0, 22));
+        JPanel adorno = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        adorno.setOpaque(false);
+        adorno.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel chispa = new JLabel(Iconos.chispa(
+                new Color(153, 232, 194), 13));
+        adorno.add(chispa);
+        adorno.add(lema);
 
-                contenido.setBackground(Estilos.FONDO);
-                contenido.setBorder(
-                        BorderFactory.createEmptyBorder(28, 34, 30, 34)
-                );
-                contenido.add(crearEncabezado(), BorderLayout.NORTH);
+        JButton contraer = new JButton("‹");
+        contraer.setToolTipText("Contraer barra lateral");
+        contraer.setFont(Estilos.fuente(Font.BOLD, 22));
+        contraer.setForeground(new Color(188, 229, 210));
+        contraer.setBorderPainted(false);
+        contraer.setContentAreaFilled(false);
+        contraer.setFocusPainted(false);
+        contraer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        contraer.addActionListener(evento -> contraerBarraLateral());
 
-                panelTarjetas.setBackground(Estilos.FONDO);
+        JPanel filaLogo = new JPanel(new BorderLayout(6, 0));
+        filaLogo.setOpaque(false);
+        filaLogo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        filaLogo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filaLogo.add(logo, BorderLayout.CENTER);
+        filaLogo.add(contraer, BorderLayout.EAST);
 
-                JScrollPane scroll = new JScrollPane(panelTarjetas);
-                scroll.setBorder(null);
-                scroll.getViewport().setBackground(Estilos.FONDO);
-                scroll.getVerticalScrollBar().setUnitIncrement(16);
+        lateral.add(filaLogo);
+        lateral.add(Box.createVerticalStrut(4));
+        lateral.add(adorno);
+        lateral.add(Box.createVerticalStrut(42));
+        lateral.add(botonInicio);
+        lateral.add(Box.createVerticalStrut(9));
+        lateral.add(botonFavoritos);
+        lateral.add(Box.createVerticalStrut(9));
+        lateral.add(botonReportes);
+        lateral.add(Box.createVerticalGlue());
 
-                contenido.add(scroll, BorderLayout.CENTER);
-                return contenido;
-        }
+        IlustracionCampus dibujo = new IlustracionCampus();
+        dibujo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 155));
+        dibujo.setPreferredSize(new Dimension(190, 155));
+        dibujo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lateral.add(dibujo);
+        lateral.add(Box.createVerticalStrut(16));
+        lateral.add(crearEtiqueta("Hecho para la comunidad UVG",
+                new Color(151, 200, 178), Font.PLAIN, 10));
 
-        private JPanel crearEncabezado() {
-                JPanel encabezado = new JPanel();
-                encabezado.setOpaque(false);
-                encabezado.setLayout(
-                        new BoxLayout(encabezado, BoxLayout.Y_AXIS)
-                );
-
-                JPanel superior = new JPanel(new BorderLayout());
-                superior.setOpaque(false);
-
-                JPanel titulos = new JPanel();
-                titulos.setOpaque(false);
-                titulos.setLayout(
-                        new BoxLayout(titulos, BoxLayout.Y_AXIS)
-                );
-
-                etiquetaSaludo.setFont(
-                        Estilos.fuente(Font.PLAIN, 14)
-                );
-                etiquetaSaludo.setForeground(
-                        Estilos.TEXTO_SECUNDARIO
-                );
-
-                titulos.add(etiquetaSaludo);
-                titulos.add(Box.createVerticalStrut(3));
-                titulos.add(etiquetaTitulo);
-
-                etiquetaResumen.setForeground(
-                        Estilos.VERDE_OSCURO
-                );
-
-                superior.add(titulos, BorderLayout.WEST);
-                superior.add(etiquetaResumen, BorderLayout.EAST);
-
-                JPanel herramientas =
-                        new JPanel(new BorderLayout(12, 0));
-
-                herramientas.setOpaque(false);
-                herramientas.setBorder(
-                        BorderFactory.createEmptyBorder(22, 0, 0, 0)
-                );
-
-                campoBusqueda.setToolTipText(
-                        "Buscar por nombre o ubicación"
-                );
-                campoBusqueda.setBorder(
-                        BorderFactory.createCompoundBorder(
-                                BorderFactory.createLineBorder(
-                                        Estilos.BORDE
-                                ),
-                                BorderFactory.createEmptyBorder(
-                                        11, 14, 11, 14
-                                )
-                        )
-                );
-
-                filtroEstado.setPreferredSize(
-                        new Dimension(125, 42)
-                );
-
-                Estilos.estilizarBotonPrincipal(botonActualizar);
-
-                JPanel acciones =
-                        new JPanel(new FlowLayout(
-                                FlowLayout.RIGHT, 10, 0
-                        ));
-
-                acciones.setOpaque(false);
-                acciones.add(filtroEstado);
-                acciones.add(botonActualizar);
-
-                herramientas.add(
-                        campoBusqueda,
-                        BorderLayout.CENTER
-                );
-                herramientas.add(
-                        acciones,
-                        BorderLayout.EAST
-                );
-
-                encabezado.add(superior);
-                encabezado.add(herramientas);
-
-                return encabezado;
-        }
-
-        private void registrarEventos() {
-                botonReportes.addActionListener(evento -> {
-                if (accionVerReportes != null) {
-                        accionVerReportes.run();
+        lateral.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent evento) {
+                if (anchoLateralObjetivo == ANCHO_LATERAL_CONTRAIDO) {
+                    expandirBarraLateral();
                 }
-                });
-                filtroEstado.addActionListener(evento -> aplicarFiltros()
-                );
-                campoBusqueda.getDocument().addDocumentListener(
-                        new DocumentListener() {
-                        public void insertUpdate(DocumentEvent e) {
-                                aplicarFiltros();
-                        }
+            }
+        });
+        return lateral;
+    }
 
-                        public void removeUpdate(DocumentEvent e) {
-                                aplicarFiltros();
-                        }
+    private void contraerBarraLateral() {
+        anchoLateralObjetivo = ANCHO_LATERAL_CONTRAIDO;
+        animarBarraLateral();
+    }
 
-                        public void changedUpdate(DocumentEvent e) {
-                                aplicarFiltros();
-                        }
-                        }
-                );
+    private void expandirBarraLateral() {
+        anchoLateralObjetivo = ANCHO_LATERAL;
+        animarBarraLateral();
+    }
+
+    private void animarBarraLateral() {
+        if (animacionLateral != null && animacionLateral.isRunning()) {
+            animacionLateral.stop();
         }
+        animacionLateral = new Timer(12, evento -> {
+            int diferencia = anchoLateralObjetivo - anchoLateralActual;
+            if (Math.abs(diferencia) <= 3) {
+                anchoLateralActual = anchoLateralObjetivo;
+                ((Timer) evento.getSource()).stop();
+            } else {
+                anchoLateralActual += Math.max(3,
+                        Math.round(Math.abs(diferencia) * 0.20f))
+                        * Integer.signum(diferencia);
+            }
+            barraLateral.setPreferredSize(
+                    new Dimension(anchoLateralActual, 0));
+            barraLateral.revalidate();
+            getContentPane().revalidate();
+        });
+        animacionLateral.start();
+    }
 
-        public void mostrarRestaurantes(
-                List<Restaurante> restaurantes
-        ) {
-                this.restaurantes = new ArrayList<>(restaurantes);
-                if (!mostrandoReportes) aplicarFiltros();
-        }
+    private JPanel crearContenido() {
+        JPanel contenido = new JPanel(new BorderLayout(0, 20));
+        contenido.setBackground(Estilos.FONDO);
+        contenido.setBorder(BorderFactory.createEmptyBorder(27, 32, 28, 32));
+        contenido.add(crearEncabezado(), BorderLayout.NORTH);
 
-        private void aplicarFiltros() {
-                String texto = campoBusqueda.getText()
-                        .trim()
-                        .toLowerCase(Locale.ROOT);
+        panelTarjetas.setBackground(Estilos.FONDO);
+        JScrollPane scroll = new ScrollPaneSuave(panelTarjetas);
+        scroll.setBorder(null);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        Estilos.estilizarScroll(scroll);
+        contenido.add(scroll, BorderLayout.CENTER);
 
-                String filtro =
-                        (String) filtroEstado.getSelectedItem();
-
-                List<Restaurante> visibles = new ArrayList<>();
-
-                for (Restaurante restaurante : restaurantes) {
-                String nombre = restaurante.getNombre()
-                        .toLowerCase(Locale.ROOT);
-
-                String ubicacion = restaurante.getUbicacion()
-                        .toLowerCase(Locale.ROOT);
-
-                boolean coincideTexto =
-                        nombre.contains(texto)
-                        || ubicacion.contains(texto);
-
-                boolean abierto = restaurante.getEstadoActual() == EstadoRestaurante.ABIERTO;
-
-                boolean coincideEstado =
-                        "Todos".equals(filtro)
-                        || ("Abiertos".equals(filtro) && abierto)
-                        || ("Cerrados".equals(filtro) && !abierto);
-
-                boolean coincideFavorito =
-                        !soloFavoritos
-                        || favoritos.contains(restaurante.getNombre());
-
-                if (coincideTexto && coincideEstado && coincideFavorito) {
-                        visibles.add(restaurante);
+        contenido.addComponentListener(new ComponentAdapter() {
+            @Override public void componentResized(ComponentEvent e) {
+                int columnas = contenido.getWidth() < 840 ? 1 : 2;
+                if (rejilla.getColumns() != columnas) {
+                    rejilla.setColumns(columnas);
+                    panelTarjetas.revalidate();
                 }
-                }
+            }
+        });
+        return contenido;
+    }
 
-                actualizarTarjetas(visibles);
+    private JPanel crearEncabezado() {
+        JPanel encabezado = new JPanel();
+        encabezado.setOpaque(false);
+        encabezado.setLayout(new BoxLayout(encabezado, BoxLayout.Y_AXIS));
+
+        JPanel superior = new JPanel(new BorderLayout(15, 0));
+        superior.setOpaque(false);
+        JPanel titulos = new JPanel();
+        titulos.setOpaque(false);
+        titulos.setLayout(new BoxLayout(titulos, BoxLayout.Y_AXIS));
+        etiquetaSaludo.setFont(Estilos.fuente(Font.PLAIN, 13));
+        etiquetaSaludo.setForeground(Estilos.TEXTO_SECUNDARIO);
+        etiquetaTitulo.setFont(Estilos.fuenteCaligrafica(31));
+        etiquetaTitulo.setForeground(Estilos.TEXTO);
+        titulos.add(etiquetaSaludo);
+        titulos.add(Box.createVerticalStrut(2));
+        titulos.add(etiquetaTitulo);
+
+        etiquetaResumen.setFont(Estilos.fuente(Font.BOLD, 12));
+        etiquetaResumen.setForeground(Estilos.VERDE_OSCURO);
+        etiquetaResumen.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Estilos.VERDE_SUAVE),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)));
+        superior.add(titulos, BorderLayout.WEST);
+        superior.add(etiquetaResumen, BorderLayout.EAST);
+
+        JPanel herramientas = new JPanel(new BorderLayout(12, 0));
+        herramientas.setOpaque(false);
+        herramientas.setBorder(BorderFactory.createEmptyBorder(18, 0, 0, 0));
+        campoBusqueda.setToolTipText("Buscar por nombre o ubicación");
+        Estilos.estilizarCampo(campoBusqueda);
+        filtroEstado.setPreferredSize(new Dimension(132, 42));
+        filtroEstado.setBackground(Color.WHITE);
+        filtroEstado.setForeground(Estilos.TEXTO);
+        filtroEstado.setBorder(BorderFactory.createLineBorder(Estilos.BORDE));
+
+        JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 9, 0));
+        acciones.setOpaque(false);
+        acciones.add(filtroEstado);
+        acciones.add(botonActualizar);
+        herramientas.add(campoBusqueda, BorderLayout.CENTER);
+        herramientas.add(acciones, BorderLayout.EAST);
+
+        configurarPanelQuick();
+        encabezado.add(superior);
+        encabezado.add(herramientas);
+        encabezado.add(Box.createVerticalStrut(14));
+        encabezado.add(panelQuick);
+        return encabezado;
+    }
+
+    private void configurarPanelQuick() {
+        panelQuick.setLayout(new BorderLayout(14, 0));
+        panelQuick.setBorder(BorderFactory.createEmptyBorder(13, 16, 14, 16));
+        panelQuick.setPreferredSize(new Dimension(720, 92));
+        panelQuick.setMaximumSize(new Dimension(720, 92));
+        panelQuick.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        panelQuick.setColorBorde(Estilos.VERDE_SUAVE);
+
+        JPanel titulo = new JPanel();
+        titulo.setOpaque(false);
+        titulo.setLayout(new BoxLayout(titulo, BoxLayout.Y_AXIS));
+        JLabel nombre = new JLabel("Sugerencias Quick");
+        nombre.setFont(Estilos.fuenteCaligrafica(22));
+        nombre.setForeground(Estilos.VERDE_OSCURO);
+        JLabel ayuda = new JLabel("Lo mejor para ahorrar tiempo ahora");
+        ayuda.setFont(Estilos.fuente(Font.PLAIN, 10));
+        ayuda.setForeground(Estilos.TEXTO_SECUNDARIO);
+        titulo.add(nombre);
+        titulo.add(ayuda);
+        contenidoQuick.setOpaque(false);
+        panelQuick.add(titulo, BorderLayout.WEST);
+        panelQuick.add(contenidoQuick, BorderLayout.CENTER);
+    }
+
+    private void registrarEventos() {
+        botonReportes.addActionListener(e -> {
+            if (accionVerReportes != null) accionVerReportes.run();
+        });
+        filtroEstado.addActionListener(e -> aplicarFiltros());
+        campoBusqueda.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { aplicarFiltros(); }
+            public void removeUpdate(DocumentEvent e) { aplicarFiltros(); }
+            public void changedUpdate(DocumentEvent e) { aplicarFiltros(); }
+        });
+    }
+
+    public void mostrarRestaurantes(List<Restaurante> restaurantes) {
+        this.restaurantes = new ArrayList<>(restaurantes);
+        if (!mostrandoReportes) aplicarFiltros();
+    }
+
+    private void aplicarFiltros() {
+        actualizarSugerenciasQuick();
+        String texto = campoBusqueda.getText().trim().toLowerCase(Locale.ROOT);
+        String filtro = (String) filtroEstado.getSelectedItem();
+        List<Restaurante> visibles = new ArrayList<>();
+        for (Restaurante restaurante : restaurantes) {
+            boolean coincideTexto = restaurante.getNombre().toLowerCase(Locale.ROOT)
+                    .contains(texto)
+                    || restaurante.getUbicacion().toLowerCase(Locale.ROOT)
+                    .contains(texto);
+            boolean abierto = restaurante.getEstadoActual()
+                    == EstadoRestaurante.ABIERTO;
+            boolean coincideEstado = "Todos".equals(filtro)
+                    || ("Abiertos".equals(filtro) && abierto)
+                    || ("Cerrados".equals(filtro) && !abierto);
+            boolean coincideFavorito = !soloFavoritos
+                    || favoritos.contains(restaurante.getNombre());
+            if (coincideTexto && coincideEstado && coincideFavorito) {
+                visibles.add(restaurante);
+            }
         }
+        actualizarTarjetas(visibles);
+    }
 
-        private void actualizarTarjetas(
-                List<Restaurante> visibles
-        ) {
-                panelTarjetas.removeAll();
+    private void actualizarSugerenciasQuick() {
+        contenidoQuick.removeAll();
+        Comparator<Restaurante> menorTiempo = Comparator
+                .comparingInt((Restaurante r) ->
+                        tiemposPromedio.get(r.getNombre()))
+                .thenComparing(Restaurante::getNombre);
+        Restaurante rapido = restaurantes.stream()
+                .filter(this::puedeSugerirse)
+                .min(menorTiempo).orElse(null);
+        Restaurante favoritoRapido = restaurantes.stream()
+                .filter(this::puedeSugerirse)
+                .filter(r -> favoritos.contains(r.getNombre()))
+                .min(menorTiempo).orElse(null);
 
-                for (Restaurante restaurante : visibles) {
-                panelTarjetas.add(crearTarjeta(restaurante));
-                }
-
-                if (visibles.isEmpty()) {
-                JLabel mensaje = new JLabel(
-                        soloFavoritos
-                                ? "Todavía no tienes restaurantes favoritos."
-                                : "No se encontraron restaurantes.",
-                        SwingConstants.CENTER
-                );
-                mensaje.setForeground(Estilos.TEXTO_SECUNDARIO);
-                panelTarjetas.add(mensaje);
-                }
-
-                long abiertos = restaurantes.stream()
-                        .filter(restaurante ->
-                                restaurante.getEstadoActual()
-                                == EstadoRestaurante.ABIERTO)
-                        .count();
-
-                if (soloFavoritos) {
-                etiquetaResumen.setText(
-                        visibles.size() + " favoritos"
-                );
-                } else {
-                etiquetaResumen.setText(
-                        abiertos + " abiertos de "
-                        + restaurantes.size()
-                );
-                }
-
-                panelTarjetas.revalidate();
-                panelTarjetas.repaint();
+        if (rapido == null) {
+            JLabel vacio = new JLabel("Aún no hay tiempos recientes");
+            vacio.setFont(Estilos.fuente(Font.PLAIN, 12));
+            vacio.setForeground(Estilos.TEXTO_SECUNDARIO);
+            contenidoQuick.add(vacio);
+        } else {
+            contenidoQuick.add(crearChipQuick(rapido, "Menor espera"));
+            if (favoritoRapido != null
+                    && !favoritoRapido.getNombre().equals(rapido.getNombre())) {
+                contenidoQuick.add(crearChipQuick(
+                        favoritoRapido, "Tu favorito más rápido"));
+            }
         }
+        contenidoQuick.revalidate();
+        contenidoQuick.repaint();
+    }
 
-        private JPanel crearTarjeta(Restaurante restaurante) {
-                ImageIcon imagen = obtenerImagenRestaurante(
-                        restaurante.getNombre()
-                );
+    private boolean puedeSugerirse(Restaurante restaurante) {
+        return restaurante.getEstadoActual() == EstadoRestaurante.ABIERTO
+                && tiemposPromedio.containsKey(restaurante.getNombre());
+    }
 
-                PanelImagen tarjeta = new PanelImagen(imagen);
+    private JPanel crearChipQuick(Restaurante restaurante, String motivo) {
+        PanelRedondeado chip = new PanelRedondeado(18, Color.WHITE);
+        chip.setLayout(new FlowLayout(FlowLayout.LEFT, 8, 7));
+        chip.setBorder(BorderFactory.createEmptyBorder(2, 8, 4, 8));
+        JLabel icono = new JLabel(Iconos.reloj(Estilos.VERDE_MEDIO, 16));
+        JLabel texto = new JLabel("<html><b>" + restaurante.getNombre()
+                + " · " + tiemposPromedio.get(restaurante.getNombre())
+                + " min</b><br><span style='font-size:9px'>" + motivo
+                + "</span></html>");
+        texto.setFont(Estilos.fuente(Font.PLAIN, 11));
+        texto.setForeground(Estilos.TEXTO);
+        chip.add(icono);
+        chip.add(texto);
+        return chip;
+    }
 
-                tarjeta.setLayout(
-                        new BoxLayout(tarjeta, BoxLayout.Y_AXIS)
-                );
-
-                tarjeta.setBorder(
-                        BorderFactory.createEmptyBorder(20, 22, 20, 22)
-                );
-
-                tarjeta.setPreferredSize(new Dimension(400, 315));
-
-                boolean abierto = restaurante.getEstadoActual()
-                        == EstadoRestaurante.ABIERTO;
-                boolean posible = restaurante.getEstadoActual()
-                        == EstadoRestaurante.POSIBLEMENTE_CERRADO;
-                boolean enHorario = restaurante.estaEnHorario();
-
-                JLabel nombre = crearEtiqueta(
-                        restaurante.getNombre(),
-                        Estilos.TEXTO,
-                        Font.BOLD,
-                        22
-                );
-
-                JLabel ubicacion = crearEtiqueta(
-                        restaurante.getUbicacion(),
-                        Estilos.TEXTO_SECUNDARIO,
-                        Font.PLAIN,
-                        13
-                );
-
-                JLabel estado = crearEtiqueta(
-                        (abierto ? "● ABIERTO" : posible ? "● POSIBLEMENTE CERRADO"
-                        : enHorario ? "● CERRADO" : "● CERRADO POR HORARIO"),
-                        abierto ? Estilos.VERDE_OSCURO : posible ? Estilos.AMARILLO : Estilos.ERROR,
-                        Font.BOLD,
-                        13
-                );
-
-                Integer promedio = tiemposPromedio.get(
-                        restaurante.getNombre()
-                );
-
-                JLabel tiempo = crearEtiqueta(
-                        promedio == null
-                        ? "Tiempo promedio: sin reportes"
-                        : "Tiempo promedio: " + promedio + " minutos",
-                        Estilos.TEXTO,
-                        Font.BOLD,
-                        14
-                );
-
-                JButton botonReportar = new JButton("Agregar reporte de fila");
-
-                Estilos.estilizarBotonPrincipal(botonReportar);
-                botonReportar.setEnabled(abierto);
-
-                botonReportar.addActionListener(evento -> {
-                        if (accionReportar != null) {
-                        accionReportar.accept(restaurante);
-                        }
-                });
-
-                boolean esFavorito = favoritos.contains(
-                        restaurante.getNombre()
-                );
-
-                JButton botonFavorito = new JButton(
-                        esFavorito
-                        ? "Quitar de favoritos"
-                        : "Agregar a favoritos"
-                );
-
-                Estilos.estilizarBotonPrincipal(botonFavorito);
-
-                botonFavorito.addActionListener(evento -> {
-                        if (accionAlternarFavorito != null) {
-                        accionAlternarFavorito.accept(restaurante);
-                        }
-                });
-
-                JButton botonAbierto = new JButton("Confirmar que está abierto");
-                JButton botonCerrado = new JButton("Reportar restaurante cerrado");
-                Estilos.estilizarBotonPrincipal(botonAbierto);
-                Estilos.estilizarBotonPrincipal(botonCerrado);
-                botonAbierto.setEnabled(enHorario);
-                botonCerrado.setEnabled(enHorario);
-                botonAbierto.addActionListener(e -> {
-                if (accionVerificarCierre != null) accionVerificarCierre.accept(restaurante, false);
-                });
-                botonCerrado.addActionListener(e -> {
-                if (accionVerificarCierre != null) accionVerificarCierre.accept(restaurante, true);
-                });
-
-                // GridLayout distribuye el espacio entre dos botones sin cortar el texto.
-                JPanel filaPrincipal = new JPanel(new GridLayout(1, 2, 10, 0));
-                filaPrincipal.setOpaque(false);
-                filaPrincipal.setAlignmentX(Component.LEFT_ALIGNMENT);
-                filaPrincipal.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-                filaPrincipal.add(botonReportar);
-                filaPrincipal.add(botonFavorito);
-
-                JPanel filaVerificacion = new JPanel(new GridLayout(1, 2, 10, 0));
-                filaVerificacion.setOpaque(false);
-                filaVerificacion.setAlignmentX(Component.LEFT_ALIGNMENT);
-                filaVerificacion.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-                filaVerificacion.add(botonAbierto);
-                filaVerificacion.add(botonCerrado);
-
-                // Botones con letra ligeramente menor para que quepa todo el texto.
-                for (JButton b : new JButton[]{botonReportar, botonFavorito,
-                        botonAbierto, botonCerrado}) {
-                b.setFont(Estilos.fuente(Font.BOLD, 11));
-                b.setMargin(new Insets(3, 4, 3, 4));
-                }
-
-                tarjeta.add(nombre);
-                tarjeta.add(Box.createVerticalStrut(6));
-                tarjeta.add(ubicacion);
-                tarjeta.add(Box.createVerticalStrut(12));
-                tarjeta.add(estado);
-                tarjeta.add(Box.createVerticalStrut(8));
-                tarjeta.add(tiempo);
-                tarjeta.add(Box.createVerticalGlue());
-                tarjeta.add(filaPrincipal);
-                tarjeta.add(Box.createVerticalStrut(8));
-                tarjeta.add(filaVerificacion);
-                tarjeta.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                tarjeta.addMouseListener(new MouseAdapter() {
-                        @Override
-                        public void mouseClicked(MouseEvent evento) {
-                                if (accionVerDetalle != null) {
-                                accionVerDetalle.accept(
-                                        restaurante
-                                );
-                                }
-                        }
-                }
-                );
-                return tarjeta;
+    private void actualizarTarjetas(List<Restaurante> visibles) {
+        panelTarjetas.removeAll();
+        for (Restaurante restaurante : visibles) {
+            panelTarjetas.add(crearTarjeta(restaurante));
         }
-        public void setAccionVerificarCierre(BiConsumer<Restaurante, Boolean> accion) {
-                this.accionVerificarCierre = accion;
+        if (visibles.isEmpty()) {
+            panelTarjetas.add(crearEstadoVacio(soloFavoritos
+                    ? "Aún no guardas restaurantes favoritos"
+                    : "No encontramos restaurantes con esos filtros"));
         }
+        long abiertos = restaurantes.stream()
+                .filter(r -> r.getEstadoActual() == EstadoRestaurante.ABIERTO)
+                .count();
+        etiquetaResumen.setText(soloFavoritos
+                ? visibles.size() + (visibles.size() == 1 ? " favorito" : " favoritos")
+                : abiertos + " abiertos de " + restaurantes.size());
+        panelTarjetas.revalidate();
+        panelTarjetas.repaint();
+    }
 
-        public JButton getBotonActualizar() {
-                return botonActualizar;
+    private JPanel crearEstadoVacio(String texto) {
+        PanelRedondeado panel = new PanelRedondeado(24, Color.WHITE);
+        panel.setLayout(new BorderLayout());
+        JLabel mensaje = new JLabel("✦  " + texto, SwingConstants.CENTER);
+        mensaje.setFont(Estilos.fuenteCaligrafica(21));
+        mensaje.setForeground(Estilos.TEXTO_SECUNDARIO);
+        panel.add(mensaje, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel crearTarjeta(Restaurante restaurante) {
+        PanelImagen tarjeta = new PanelImagen(
+                obtenerImagenRestaurante(restaurante.getNombre()));
+        tarjeta.setLayout(new BoxLayout(tarjeta, BoxLayout.Y_AXIS));
+        tarjeta.setBorder(BorderFactory.createEmptyBorder(18, 19, 18, 19));
+        tarjeta.setPreferredSize(new Dimension(410, 330));
+        tarjeta.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        boolean abierto = restaurante.getEstadoActual() == EstadoRestaurante.ABIERTO;
+        boolean posible = restaurante.getEstadoActual()
+                == EstadoRestaurante.POSIBLEMENTE_CERRADO;
+        boolean enHorario = restaurante.estaEnHorario();
+        boolean esFavorito = favoritos.contains(restaurante.getNombre());
+
+        JPanel cabecera = new JPanel(new BorderLayout(8, 0));
+        cabecera.setOpaque(false);
+        cabecera.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cabecera.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        JLabel estado = crearChipEstado(restaurante, abierto, posible, enHorario);
+        BotonCorazon botonFavorito = new BotonCorazon(esFavorito);
+        botonFavorito.addActionListener(e -> {
+            if (accionAlternarFavorito != null) {
+                accionAlternarFavorito.accept(restaurante);
+            }
+        });
+        cabecera.add(estado, BorderLayout.WEST);
+        cabecera.add(botonFavorito, BorderLayout.EAST);
+
+        JLabel nombre = crearEtiqueta(restaurante.getNombre(),
+                Estilos.TEXTO, Font.BOLD, 23);
+        JLabel ubicacion = crearEtiqueta("⌖  " + restaurante.getUbicacion(),
+                Estilos.TEXTO_SECUNDARIO, Font.PLAIN, 13);
+        Integer promedio = tiemposPromedio.get(restaurante.getNombre());
+        JLabel tiempo = new JLabel(promedio == null
+                ? "Sin reportes recientes"
+                : promedio + " min de espera promedio");
+        tiempo.setIcon(Iconos.reloj(Estilos.VERDE_OSCURO, 17));
+        tiempo.setIconTextGap(7);
+        tiempo.setFont(Estilos.fuente(Font.BOLD, 13));
+        tiempo.setForeground(Estilos.VERDE_OSCURO);
+        tiempo.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        BotonAnimado botonReportar = new BotonAnimado(
+                "Reportar fila", Estilos.VERDE_MEDIO, Estilos.VERDE_OSCURO);
+        botonReportar.setEnabled(abierto);
+        botonReportar.addActionListener(e -> {
+            if (accionReportar != null) accionReportar.accept(restaurante);
+        });
+        BotonAnimado botonAbierto = new BotonAnimado(
+                "Está abierto", new Color(74, 126, 105), Estilos.VERDE_OSCURO);
+        BotonAnimado botonCerrado = new BotonAnimado(
+                "Reportar cierre", new Color(169, 93, 91), Estilos.ERROR);
+        botonAbierto.setEnabled(enHorario);
+        botonCerrado.setEnabled(enHorario);
+        botonAbierto.addActionListener(e -> {
+            if (accionVerificarCierre != null)
+                accionVerificarCierre.accept(restaurante, false);
+        });
+        botonCerrado.addActionListener(e -> {
+            if (accionVerificarCierre != null)
+                accionVerificarCierre.accept(restaurante, true);
+        });
+
+        JPanel acciones = new JPanel(new GridLayout(1, 3, 8, 0));
+        acciones.setOpaque(false);
+        acciones.setAlignmentX(Component.LEFT_ALIGNMENT);
+        acciones.setMaximumSize(new Dimension(Integer.MAX_VALUE, 39));
+        acciones.add(botonReportar);
+        acciones.add(botonAbierto);
+        acciones.add(botonCerrado);
+
+        tarjeta.add(cabecera);
+        tarjeta.add(Box.createVerticalStrut(20));
+        tarjeta.add(nombre);
+        tarjeta.add(Box.createVerticalStrut(5));
+        tarjeta.add(ubicacion);
+        tarjeta.add(Box.createVerticalStrut(13));
+        tarjeta.add(tiempo);
+        tarjeta.add(Box.createVerticalGlue());
+        tarjeta.add(acciones);
+        tarjeta.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (accionVerDetalle != null) accionVerDetalle.accept(restaurante);
+            }
+        });
+        return tarjeta;
+    }
+
+    private JLabel crearChipEstado(Restaurante restaurante, boolean abierto,
+                                   boolean posible, boolean enHorario) {
+        String texto = abierto ? "● ABIERTO"
+                : posible ? "● POSIBLEMENTE CERRADO"
+                : enHorario ? "● CERRADO" : "● CERRADO POR HORARIO";
+        Color color = abierto ? Estilos.VERDE_OSCURO
+                : posible ? new Color(139, 91, 15) : Estilos.ERROR;
+        Color fondo = abierto ? Estilos.VERDE_SUAVE
+                : posible ? new Color(255, 241, 204) : new Color(255, 227, 227);
+        JLabel etiqueta = new JLabel(texto);
+        etiqueta.setOpaque(true);
+        etiqueta.setBackground(fondo);
+        etiqueta.setForeground(color);
+        etiqueta.setFont(Estilos.fuente(Font.BOLD, 10));
+        etiqueta.setBorder(BorderFactory.createEmptyBorder(7, 10, 7, 10));
+        return etiqueta;
+    }
+
+    private JLabel crearEtiqueta(String texto, Color color, int estilo, int tamanio) {
+        JLabel etiqueta = new JLabel(texto);
+        etiqueta.setForeground(color);
+        etiqueta.setFont(Estilos.fuente(estilo, tamanio));
+        etiqueta.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return etiqueta;
+    }
+
+    public void mostrarFavoritos(Set<String> favoritos) {
+        this.favoritos = new HashSet<>(favoritos);
+        aplicarFiltros();
+    }
+
+    public void mostrarSoloFavoritos(boolean soloFavoritos) {
+        this.mostrandoReportes = false;
+        this.soloFavoritos = soloFavoritos;
+        panelQuick.setVisible(true);
+        etiquetaTitulo.setText(soloFavoritos
+                ? "Tus lugares favoritos" : "¿Dónde quieres comer hoy?");
+        seleccionarNavegacion(soloFavoritos ? 1 : 0);
+        campoBusqueda.setEnabled(true);
+        filtroEstado.setEnabled(true);
+        aplicarFiltros();
+    }
+
+    private void seleccionarNavegacion(int indice) {
+        botonInicio.setSeleccionado(indice == 0);
+        botonFavoritos.setSeleccionado(indice == 1);
+        botonReportes.setSeleccionado(indice == 2);
+    }
+
+    public void mostrarPromedios(Map<String, Integer> promedios) {
+        tiemposPromedio = new HashMap<>(promedios);
+        if (!mostrandoReportes) aplicarFiltros();
+    }
+
+    public void mostrarMisReportes(List<Reporte> reportes) {
+        mostrandoReportes = true;
+        panelQuick.setVisible(false);
+        panelTarjetas.removeAll();
+        etiquetaTitulo.setText("Tus reportes recientes");
+        seleccionarNavegacion(2);
+        campoBusqueda.setEnabled(false);
+        filtroEstado.setEnabled(false);
+        etiquetaResumen.setText(reportes.size() == 1
+                ? "1 reporte" : reportes.size() + " reportes");
+        if (reportes.isEmpty()) {
+            panelTarjetas.add(crearEstadoVacio("Todavía no has realizado reportes"));
+        } else {
+            for (Reporte reporte : reportes) {
+                panelTarjetas.add(crearTarjetaReporte(reporte));
+            }
         }
+        panelTarjetas.revalidate();
+        panelTarjetas.repaint();
+    }
 
-        public JButton getBotonInicio() {
-                return botonInicio;
-        }
+    private JPanel crearTarjetaReporte(Reporte reporte) {
+        PanelRedondeado tarjeta = new PanelRedondeado(24, Color.WHITE);
+        tarjeta.activarHover();
+        tarjeta.setLayout(new BoxLayout(tarjeta, BoxLayout.Y_AXIS));
+        tarjeta.setBorder(BorderFactory.createEmptyBorder(21, 22, 25, 22));
+        JLabel restaurante = new JLabel(reporte.getNombreRestaurante());
+        restaurante.setFont(Estilos.fuenteCaligrafica(24));
+        restaurante.setForeground(Estilos.TEXTO);
+        JLabel personas = crearEtiqueta("♙  " + reporte.getCantidadPersonas()
+                + " personas en fila", Estilos.TEXTO_SECUNDARIO,
+                Font.PLAIN, 13);
+        JLabel tiempo = crearEtiqueta("◷  " + reporte.getTiempoEspera()
+                + " minutos de espera", Estilos.VERDE_OSCURO,
+                Font.BOLD, 13);
+        DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yyyy · HH:mm");
+        JLabel fecha = crearEtiqueta(reporte.getFechaHora().format(formato),
+                Estilos.TEXTO_SECUNDARIO, Font.PLAIN, 12);
+        tarjeta.add(restaurante);
+        tarjeta.add(Box.createVerticalStrut(16));
+        tarjeta.add(personas);
+        tarjeta.add(Box.createVerticalStrut(7));
+        tarjeta.add(tiempo);
+        tarjeta.add(Box.createVerticalStrut(12));
+        tarjeta.add(fecha);
+        return tarjeta;
+    }
 
-        public JButton getBotonFavoritos() {
-                return botonFavoritos;
-        }
+    private ImageIcon obtenerImagenRestaurante(String nombre) {
+        String archivo = switch (nombre.toLowerCase(Locale.ROOT)) {
+            case "&cafe" -> "&cafe.jfif";
+            case "barista" -> "cafe_barista.jpg";
+            case "gitane" -> "cafe_gitane.jpg";
+            case "gogreen" -> "gogreen.jfif";
+            case "sarita" -> "sarita.jfif";
+            default -> "restaurante.png";
+        };
+        java.net.URL ruta = getClass().getResource("/images/" + archivo);
+        if (ruta == null) ruta = getClass().getResource("/images/restaurante.png");
+        return ruta == null ? null : new ImageIcon(ruta);
+    }
 
-        public void setAccionReportar(
-                Consumer<Restaurante> accionReportar
-        ) {
-                this.accionReportar = accionReportar;
-        }
-        public void setAccionVerReportes(Runnable accionVerReportes) {
-                this.accionVerReportes = accionVerReportes;
-                }
-        public void setAccionAlternarFavorito(
-                Consumer<Restaurante> accionAlternarFavorito
-        ) {
-                this.accionAlternarFavorito = accionAlternarFavorito;
-        }
-
-        public void mostrarFavoritos(Set<String> favoritos) {
-                this.favoritos = new HashSet<>(favoritos);
-                aplicarFiltros();
-        }
-
-        public void mostrarSoloFavoritos(boolean soloFavoritos) {
-                this.mostrandoReportes = false;
-                this.soloFavoritos = soloFavoritos;
-                etiquetaTitulo.setText(
-                        soloFavoritos
-                                ? "Tus restaurantes favoritos"
-                                : "¿Dónde quieres comer hoy?"
-                );
-                botonInicio.setBackground(
-                        soloFavoritos ? Estilos.VERDE_OSCURO : Estilos.VERDE_MEDIO
-                );
-                botonFavoritos.setBackground(
-                        soloFavoritos ? Estilos.VERDE_MEDIO : Estilos.VERDE_OSCURO
-                );
-                aplicarFiltros();
-                campoBusqueda.setEnabled(true);
-                filtroEstado.setEnabled(true);
-
-                botonReportes.setBackground(
-                        Estilos.VERDE_OSCURO
-                );
-        }
-
-        public String solicitarDato(String mensaje) {
-                return JOptionPane.showInputDialog(
-                        this,
-                        mensaje
-                );
-        }
-
-        public void mostrarMensaje(
-                String titulo,
-                String mensaje
-        ) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        mensaje,
-                        titulo,
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-        }
-
-        public void mostrarError(String mensaje) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        mensaje,
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-        }
-        public void mostrarPromedios(Map<String, Integer> promedios){
-                tiemposPromedio = new HashMap<>(promedios);
-                aplicarFiltros();
-        }
-        public void mostrarMisReportes(List<Reporte> reportes
-                ) {
-                mostrandoReportes = true;
-                panelTarjetas.removeAll();
-                etiquetaTitulo.setText("Mis reportes");
-                botonInicio.setBackground(Estilos.VERDE_OSCURO);
-                botonFavoritos.setBackground(Estilos.VERDE_OSCURO);
-                botonReportes.setBackground(Estilos.VERDE_MEDIO);
-                campoBusqueda.setEnabled(false);
-                filtroEstado.setEnabled(false);
-                etiquetaResumen.setText(reportes.size() == 1? "1 reporte": reportes.size() + " reportes"
-                );
-                if (reportes.isEmpty()) {
-                        JLabel mensaje = new JLabel(
-                                "Todavía no has realizado reportes.",
-                                SwingConstants.CENTER
-                        );
-
-                        mensaje.setForeground(
-                                Estilos.TEXTO_SECUNDARIO
-                        );
-
-                        panelTarjetas.add(mensaje);
-
-                } else {
-
-                        for (Reporte reporte : reportes) {
-                        panelTarjetas.add(
-                                crearTarjetaReporte(reporte)
-                        );
-                        }
-                }
-
-                panelTarjetas.revalidate();
-                panelTarjetas.repaint();
-        }
-        private JPanel crearTarjetaReporte(
-                        Reporte reporte
-                ) {
-                JPanel tarjeta = new JPanel();
-
-                tarjeta.setLayout(
-                        new BoxLayout(
-                                tarjeta,
-                                BoxLayout.Y_AXIS
-                        )
-                );
-
-                tarjeta.setBackground(Color.WHITE);
-
-                tarjeta.setBorder(
-                        BorderFactory.createCompoundBorder(
-                                BorderFactory.createLineBorder(
-                                        Estilos.BORDE
-                                ),
-                                BorderFactory.createEmptyBorder(
-                                        18, 18, 18, 18
-                                )
-                        )
-                );
-
-                JLabel restaurante = crearEtiqueta(
-                        reporte.getNombreRestaurante(),
-                        Estilos.TEXTO,
-                        Font.BOLD,
-                        18
-                );
-
-                JLabel personas = crearEtiqueta(
-                        "Personas en fila: "
-                                + reporte.getCantidadPersonas(),
-                        Estilos.TEXTO_SECUNDARIO,
-                        Font.PLAIN,
-                        14
-                );
-
-                JLabel tiempo = crearEtiqueta(
-                        "Tiempo de espera: "
-                                + reporte.getTiempoEspera()
-                                + " minutos",
-                        Estilos.TEXTO_SECUNDARIO,
-                        Font.PLAIN,
-                        14
-                );
-                DateTimeFormatter formato =DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-                JLabel fecha = crearEtiqueta("Fecha: "+ reporte.getFechaHora().format(formato),Estilos.TEXTO_SECUNDARIO,
-                        Font.PLAIN,13);
-                tarjeta.add(restaurante);
-                tarjeta.add(Box.createVerticalStrut(12));
-                tarjeta.add(personas);
-                tarjeta.add(Box.createVerticalStrut(7));
-                tarjeta.add(tiempo);
-                tarjeta.add(Box.createVerticalStrut(7));
-                tarjeta.add(fecha);
-                return tarjeta;
-        }
-        private ImageIcon obtenerImagenRestaurante(String nombre) {
-                String archivo;
-                switch (nombre.toLowerCase(java.util.Locale.ROOT)) {
-                        case "&cafe":
-                        archivo = "&cafe.jfif";
-                        break;
-                        case "barista":
-                        archivo = "cafe_barista.jpg";
-                        break;
-                        case "gitane":
-                        archivo = "cafe_gitane.jpg";
-                        break;
-                        case "gogreen":
-                                archivo = "gogreen.jfif";
-                                break;
-                        case "sarita":
-                                archivo= "sarita.jfif";
-                                break;
-                        default:
-                        archivo = "restaurante.png";
-                }
-
-                java.net.URL ruta = getClass().getResource(
-                        "/images/" + archivo
-                );
-
-                if (ruta == null) {
-                        ruta = getClass().getResource(
-                        "/images/restaurante.png"
-                        );
-                }
-
-                return ruta != null ? new ImageIcon(ruta) : null;
-        }
-        public void setAccionVerDetalle(Consumer<Restaurante> accion) {
-                accionVerDetalle = accion;
-        }
+    public JButton getBotonActualizar() { return botonActualizar; }
+    public JButton getBotonInicio() { return botonInicio; }
+    public JButton getBotonFavoritos() { return botonFavoritos; }
+    public void setAccionReportar(Consumer<Restaurante> accion) {
+        accionReportar = accion;
+    }
+    public void setAccionVerReportes(Runnable accion) { accionVerReportes = accion; }
+    public void setAccionAlternarFavorito(Consumer<Restaurante> accion) {
+        accionAlternarFavorito = accion;
+    }
+    public void setAccionVerificarCierre(BiConsumer<Restaurante, Boolean> accion) {
+        accionVerificarCierre = accion;
+    }
+    public void setAccionVerDetalle(Consumer<Restaurante> accion) {
+        accionVerDetalle = accion;
+    }
+    public String solicitarDato(String mensaje) {
+        return JOptionPane.showInputDialog(this, mensaje);
+    }
+    public void mostrarMensaje(String titulo, String mensaje) {
+        DialogoAmigable.mostrar(this, titulo, mensaje, false);
+    }
+    public void mostrarError(String mensaje) {
+        DialogoAmigable.mostrar(this, "Algo salió mal", mensaje, true);
+    }
 }
