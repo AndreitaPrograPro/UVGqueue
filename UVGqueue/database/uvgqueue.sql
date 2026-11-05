@@ -115,4 +115,4 @@ INSERT IGNORE INTO restaurante (
 ('&Cafe', 'CIT 6', 'ABIERTO', '06:00:00', '24:00:00'),
 ('Barista', 'Patio CIT', 'ABIERTO', '06:00:00', '24:00:00'),
 ('Golden Harvest', 'Puerta 6', 'ABIERTO', '06:00:00', '24:00:00'),
-('Sarita', 'Edificio F', 'ABIERTO', '062:00:00', '24:00:00');
+('Sarita', 'Edificio F', 'ABIERTO', '06:00:00', '24:00:00');

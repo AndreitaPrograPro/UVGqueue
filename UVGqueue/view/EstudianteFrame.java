@@ -69,6 +69,9 @@ public class EstudianteFrame extends JFrame {
     private final PanelRedondeado panelQuick =
             new PanelRedondeado(24, Estilos.MENTA);
     private JPanel barraLateral;
+    private JPanel contenidoLateral;
+    private JLabel logoLateral;
+    private JButton botonMenuLateral;
     private Timer animacionLateral;
     private int anchoLateralActual = ANCHO_LATERAL;
     private int anchoLateralObjetivo = ANCHO_LATERAL;
@@ -97,7 +100,7 @@ public class EstudianteFrame extends JFrame {
     }
 
     private void configurarVentana() {
-        setTitle("UVGqueue · Tu tiempo importa");
+        setTitle("FastQueue · Tu tiempo importa");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1040, 690));
         setSize(1280, 820);
@@ -117,59 +120,79 @@ public class EstudianteFrame extends JFrame {
         lateral.setBackground(Estilos.VERDE_OSCURO);
         lateral.setPreferredSize(new Dimension(ANCHO_LATERAL, 0));
         lateral.setBorder(BorderFactory.createEmptyBorder(30, 22, 24, 22));
-        lateral.setLayout(new BoxLayout(lateral, BoxLayout.Y_AXIS));
+        lateral.setLayout(new BorderLayout(0, 4));
 
-        JLabel logo = new JLabel("UVGqueue");
-        logo.setFont(Estilos.fuenteCaligrafica(34));
-        logo.setForeground(Color.WHITE);
-        logo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        logoLateral = new JLabel("FastQueue");
+        logoLateral.setFont(Estilos.fuenteTitulo(30));
+        logoLateral.setForeground(Color.WHITE);
         JLabel lema = crearEtiqueta("Tu tiempo importa",
-                new Color(187, 226, 208), Font.PLAIN, 12);
+                new Color(255, 241, 202), Font.PLAIN, 12);
 
         JPanel adorno = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         adorno.setOpaque(false);
         adorno.setAlignmentX(Component.LEFT_ALIGNMENT);
         JLabel chispa = new JLabel(Iconos.chispa(
-                new Color(153, 232, 194), 13));
+                Estilos.AZAFRAN, 13));
         adorno.add(chispa);
         adorno.add(lema);
 
-        JButton contraer = new JButton("‹");
-        contraer.setToolTipText("Contraer barra lateral");
-        contraer.setFont(Estilos.fuente(Font.BOLD, 22));
-        contraer.setForeground(new Color(188, 229, 210));
-        contraer.setBorderPainted(false);
-        contraer.setContentAreaFilled(false);
-        contraer.setFocusPainted(false);
-        contraer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        contraer.addActionListener(evento -> contraerBarraLateral());
+        botonMenuLateral = new JButton(
+                Estilos.cargarIcono("Menu.png", 25, 25, 0.92f));
+        botonMenuLateral.setToolTipText("Contraer menú");
+        botonMenuLateral.setPreferredSize(new Dimension(40, 40));
+        botonMenuLateral.setMinimumSize(new Dimension(40, 40));
+        botonMenuLateral.setMaximumSize(new Dimension(40, 40));
+        botonMenuLateral.setBorder(BorderFactory.createEmptyBorder(7, 7, 7, 7));
+        botonMenuLateral.setBackground(Color.WHITE);
+        botonMenuLateral.setOpaque(true);
+        botonMenuLateral.setBorderPainted(false);
+        botonMenuLateral.setFocusPainted(false);
+        botonMenuLateral.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        botonMenuLateral.addActionListener(evento -> {
+            if (anchoLateralObjetivo == ANCHO_LATERAL) {
+                contraerBarraLateral();
+            } else {
+                expandirBarraLateral();
+            }
+        });
+        botonMenuLateral.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent evento) {
+                if (anchoLateralObjetivo == ANCHO_LATERAL_CONTRAIDO) {
+                    expandirBarraLateral();
+                }
+            }
+        });
 
         JPanel filaLogo = new JPanel(new BorderLayout(6, 0));
         filaLogo.setOpaque(false);
-        filaLogo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
-        filaLogo.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filaLogo.add(logo, BorderLayout.CENTER);
-        filaLogo.add(contraer, BorderLayout.EAST);
+        filaLogo.setPreferredSize(new Dimension(194, 42));
+        filaLogo.add(logoLateral, BorderLayout.CENTER);
+        filaLogo.add(botonMenuLateral, BorderLayout.EAST);
 
-        lateral.add(filaLogo);
-        lateral.add(Box.createVerticalStrut(4));
-        lateral.add(adorno);
-        lateral.add(Box.createVerticalStrut(42));
-        lateral.add(botonInicio);
-        lateral.add(Box.createVerticalStrut(9));
-        lateral.add(botonFavoritos);
-        lateral.add(Box.createVerticalStrut(9));
-        lateral.add(botonReportes);
-        lateral.add(Box.createVerticalGlue());
+        contenidoLateral = new JPanel();
+        contenidoLateral.setOpaque(false);
+        contenidoLateral.setLayout(
+                new BoxLayout(contenidoLateral, BoxLayout.Y_AXIS));
+        contenidoLateral.add(adorno);
+        contenidoLateral.add(Box.createVerticalStrut(42));
+        contenidoLateral.add(botonInicio);
+        contenidoLateral.add(Box.createVerticalStrut(9));
+        contenidoLateral.add(botonFavoritos);
+        contenidoLateral.add(Box.createVerticalStrut(9));
+        contenidoLateral.add(botonReportes);
+        contenidoLateral.add(Box.createVerticalGlue());
 
         IlustracionCampus dibujo = new IlustracionCampus();
         dibujo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 155));
         dibujo.setPreferredSize(new Dimension(190, 155));
         dibujo.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lateral.add(dibujo);
-        lateral.add(Box.createVerticalStrut(16));
-        lateral.add(crearEtiqueta("Hecho para la comunidad UVG",
-                new Color(151, 200, 178), Font.PLAIN, 10));
+        contenidoLateral.add(dibujo);
+        contenidoLateral.add(Box.createVerticalStrut(16));
+        contenidoLateral.add(crearEtiqueta("Hecho para aprovechar tu tiempo",
+                new Color(255, 231, 168), Font.PLAIN, 10));
+
+        lateral.add(filaLogo, BorderLayout.NORTH);
+        lateral.add(contenidoLateral, BorderLayout.CENTER);
 
         lateral.addMouseListener(new MouseAdapter() {
             @Override public void mouseEntered(MouseEvent evento) {
@@ -182,13 +205,26 @@ public class EstudianteFrame extends JFrame {
     }
 
     private void contraerBarraLateral() {
+        mostrarContenidoLateral(false);
         anchoLateralObjetivo = ANCHO_LATERAL_CONTRAIDO;
+        botonMenuLateral.setToolTipText("Desplegar menú");
         animarBarraLateral();
     }
 
     private void expandirBarraLateral() {
         anchoLateralObjetivo = ANCHO_LATERAL;
+        botonMenuLateral.setToolTipText("Contraer menú");
         animarBarraLateral();
+    }
+
+    private void mostrarContenidoLateral(boolean visible) {
+        logoLateral.setVisible(visible);
+        contenidoLateral.setVisible(visible);
+        barraLateral.setBorder(visible
+                ? BorderFactory.createEmptyBorder(30, 22, 24, 22)
+                : BorderFactory.createEmptyBorder(18, 8, 18, 8));
+        barraLateral.revalidate();
+        barraLateral.repaint();
     }
 
     private void animarBarraLateral() {
@@ -200,6 +236,9 @@ public class EstudianteFrame extends JFrame {
             if (Math.abs(diferencia) <= 3) {
                 anchoLateralActual = anchoLateralObjetivo;
                 ((Timer) evento.getSource()).stop();
+                if (anchoLateralActual == ANCHO_LATERAL) {
+                    mostrarContenidoLateral(true);
+                }
             } else {
                 anchoLateralActual += Math.max(3,
                         Math.round(Math.abs(diferencia) * 0.20f))
@@ -251,7 +290,7 @@ public class EstudianteFrame extends JFrame {
         titulos.setLayout(new BoxLayout(titulos, BoxLayout.Y_AXIS));
         etiquetaSaludo.setFont(Estilos.fuente(Font.PLAIN, 13));
         etiquetaSaludo.setForeground(Estilos.TEXTO_SECUNDARIO);
-        etiquetaTitulo.setFont(Estilos.fuenteCaligrafica(31));
+        etiquetaTitulo.setFont(Estilos.fuenteTitulo(31));
         etiquetaTitulo.setForeground(Estilos.TEXTO);
         titulos.add(etiquetaSaludo);
         titulos.add(Box.createVerticalStrut(2));
@@ -270,6 +309,18 @@ public class EstudianteFrame extends JFrame {
         herramientas.setBorder(BorderFactory.createEmptyBorder(18, 0, 0, 0));
         campoBusqueda.setToolTipText("Buscar por nombre o ubicación");
         Estilos.estilizarCampo(campoBusqueda);
+        campoBusqueda.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 12));
+
+        JPanel contenedorBusqueda = new JPanel(new BorderLayout(8, 0));
+        contenedorBusqueda.setBackground(Color.WHITE);
+        contenedorBusqueda.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Estilos.BORDE),
+                BorderFactory.createEmptyBorder(0, 13, 0, 0)));
+        JLabel lupa = new JLabel(
+                Estilos.cargarIcono("lupa.jpg", 21, 21, 0.38f));
+        lupa.setToolTipText("Buscar por nombre o ubicación");
+        contenedorBusqueda.add(lupa, BorderLayout.WEST);
+        contenedorBusqueda.add(campoBusqueda, BorderLayout.CENTER);
         filtroEstado.setPreferredSize(new Dimension(132, 42));
         filtroEstado.setBackground(Color.WHITE);
         filtroEstado.setForeground(Estilos.TEXTO);
@@ -279,7 +330,7 @@ public class EstudianteFrame extends JFrame {
         acciones.setOpaque(false);
         acciones.add(filtroEstado);
         acciones.add(botonActualizar);
-        herramientas.add(campoBusqueda, BorderLayout.CENTER);
+        herramientas.add(contenedorBusqueda, BorderLayout.CENTER);
         herramientas.add(acciones, BorderLayout.EAST);
 
         configurarPanelQuick();
@@ -293,16 +344,16 @@ public class EstudianteFrame extends JFrame {
     private void configurarPanelQuick() {
         panelQuick.setLayout(new BorderLayout(14, 0));
         panelQuick.setBorder(BorderFactory.createEmptyBorder(13, 16, 14, 16));
-        panelQuick.setPreferredSize(new Dimension(720, 92));
-        panelQuick.setMaximumSize(new Dimension(720, 92));
-        panelQuick.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        panelQuick.setPreferredSize(new Dimension(0, 92));
+        panelQuick.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
+        panelQuick.setAlignmentX(Component.LEFT_ALIGNMENT);
         panelQuick.setColorBorde(Estilos.VERDE_SUAVE);
 
         JPanel titulo = new JPanel();
         titulo.setOpaque(false);
         titulo.setLayout(new BoxLayout(titulo, BoxLayout.Y_AXIS));
         JLabel nombre = new JLabel("Sugerencias Quick");
-        nombre.setFont(Estilos.fuenteCaligrafica(22));
+        nombre.setFont(Estilos.fuenteTitulo(22));
         nombre.setForeground(Estilos.VERDE_OSCURO);
         JLabel ayuda = new JLabel("Lo mejor para ahorrar tiempo ahora");
         ayuda.setFont(Estilos.fuente(Font.PLAIN, 10));
@@ -431,7 +482,7 @@ public class EstudianteFrame extends JFrame {
         PanelRedondeado panel = new PanelRedondeado(24, Color.WHITE);
         panel.setLayout(new BorderLayout());
         JLabel mensaje = new JLabel("✦  " + texto, SwingConstants.CENTER);
-        mensaje.setFont(Estilos.fuenteCaligrafica(21));
+        mensaje.setFont(Estilos.fuenteTitulo(21));
         mensaje.setForeground(Estilos.TEXTO_SECUNDARIO);
         panel.add(mensaje, BorderLayout.CENTER);
         return panel;
@@ -606,7 +657,7 @@ public class EstudianteFrame extends JFrame {
         tarjeta.setLayout(new BoxLayout(tarjeta, BoxLayout.Y_AXIS));
         tarjeta.setBorder(BorderFactory.createEmptyBorder(21, 22, 25, 22));
         JLabel restaurante = new JLabel(reporte.getNombreRestaurante());
-        restaurante.setFont(Estilos.fuenteCaligrafica(24));
+        restaurante.setFont(Estilos.fuenteTitulo(24));
         restaurante.setForeground(Estilos.TEXTO);
         JLabel personas = crearEtiqueta("♙  " + reporte.getCantidadPersonas()
                 + " personas en fila", Estilos.TEXTO_SECUNDARIO,
