@@ -32,6 +32,9 @@ public class EstudianteFrame {
     private final Button botonInicio = nav("⌂  Inicio");
     private final Button botonFavoritos = nav("♡  Favoritos");
     private final Button botonReportes = nav("▤  Mis reportes");
+    private final Button botonMenu = nav("☷  Menú");
+    private final MenuView vistaMenu = new MenuView();
+    private Node contenidoPrincipal;
     private final Button botonActualizar = new Button("↻  Actualizar");
     private final TextField campoBusqueda = new TextField();
     private final ComboBox<String> filtroEstado = new ComboBox<>();
@@ -48,12 +51,14 @@ public class EstudianteFrame {
     private Set<String> favoritos = new HashSet<>();
     private boolean soloFavoritos;
     private boolean mostrandoReportes;
+    private boolean mostrandoMenu;
     private boolean menuExpandido = true;
     private Consumer<Restaurante> accionReportar;
     private Consumer<Restaurante> accionAlternarFavorito;
     private Consumer<Restaurante> accionVerDetalle;
     private BiConsumer<Restaurante, Boolean> accionVerificarCierre;
     private Runnable accionVerReportes;
+    private Runnable accionVerMenu;
 
     public EstudianteFrame(String nombreUsuario) {
         this.nombreUsuario = nombreUsuario;
@@ -69,7 +74,8 @@ public class EstudianteFrame {
         sidebar.setMinWidth(72);
         sidebar.setPadding(new Insets(22, 14, 22, 14));
         root.setLeft(sidebar);
-        root.setCenter(contenido());
+        contenidoPrincipal = contenido();
+        root.setCenter(contenidoPrincipal);
 
         Button menu = new Button("☰");
         menu.getStyleClass().add("menu-button");
@@ -90,7 +96,9 @@ public class EstudianteFrame {
         Label footer = new Label("Hecho para aprovechar tu tiempo");
         footer.getStyleClass().add("sidebar-subtitle");
         footer.setWrapText(true);
-        sidebar.getChildren().addAll(top, space(55), botonInicio, botonFavoritos, botonReportes, push, footer);
+        botonMenu.setTooltip(new Tooltip("Menú"));
+        botonMenu.setAccessibleText("Menú");
+        sidebar.getChildren().addAll(top, space(55), botonInicio, botonFavoritos, botonReportes, botonMenu, push, footer);
         sidebar.setOnMouseEntered(e -> { if (!menuExpandido) expandirMenu(true); });
 
         Scene scene = new Scene(root, 1280, 800);
@@ -165,6 +173,10 @@ public class EstudianteFrame {
         botonInicio.setOnAction(e -> mostrarSoloFavoritos(false));
         botonFavoritos.setOnAction(e -> mostrarSoloFavoritos(true));
         botonReportes.setOnAction(e -> { if (accionVerReportes != null) accionVerReportes.run(); });
+        botonMenu.setOnAction(e -> {
+            mostrarMenu();
+            if (accionVerMenu != null) accionVerMenu.run();
+        });
     }
 
     private Button nav(String text) {
@@ -186,22 +198,24 @@ public class EstudianteFrame {
             botonInicio.setText("⌂  Inicio");
             botonFavoritos.setText("♡  Favoritos");
             botonReportes.setText("▤  Mis reportes");
+            botonMenu.setText("☷  Menú");
         } else {
             sidebarText.setVisible(false);
             botonInicio.setText("⌂");
             botonFavoritos.setText("♡");
             botonReportes.setText("▤");
+            botonMenu.setText("☷");
         }
         timeline.play();
     }
 
     public void mostrarRestaurantes(List<Restaurante> restaurantes) {
         this.restaurantes = new ArrayList<>(restaurantes);
-        if (!mostrandoReportes) aplicarFiltros();
+        if (!mostrandoReportes && !mostrandoMenu) aplicarFiltros();
     }
 
     private void aplicarFiltros() {
-        if (mostrandoReportes) return;
+        if (mostrandoReportes || mostrandoMenu) return;
         String q = campoBusqueda.getText() == null ? "" : campoBusqueda.getText().trim().toLowerCase(Locale.ROOT);
         String estado = filtroEstado.getValue();
         List<Restaurante> visibles = restaurantes.stream().filter(r -> {
@@ -372,6 +386,7 @@ public class EstudianteFrame {
     public void mostrarFavoritos(Set<String> favoritos) { this.favoritos = new HashSet<>(favoritos); aplicarFiltros(); }
     public void mostrarPromedios(Map<String, Integer> promedios) { tiemposPromedio = new HashMap<>(promedios); aplicarFiltros(); }
     public void mostrarSoloFavoritos(boolean value) {
+        mostrandoMenu = false; root.setCenter(contenidoPrincipal);
         mostrandoReportes = false; soloFavoritos = value;
         titulo.setText(value ? "Tus restaurantes favoritos" : "¿Dónde quieres comer hoy?");
         campoBusqueda.setDisable(false); filtroEstado.setDisable(false);
@@ -379,6 +394,7 @@ public class EstudianteFrame {
     }
 
     public void mostrarMisReportes(List<Reporte> reportes) {
+        mostrandoMenu = false; root.setCenter(contenidoPrincipal);
         mostrandoReportes = true; titulo.setText("Mis reportes");
         campoBusqueda.setDisable(true); filtroEstado.setDisable(true); setNav(botonReportes);
         tarjetas.getChildren().clear(); resumen.setText(reportes.size() == 1 ? "1 reporte" : reportes.size() + " reportes");
@@ -402,9 +418,17 @@ public class EstudianteFrame {
     }
 
     private void setNav(Button active) {
-        for (Button b : List.of(botonInicio, botonFavoritos, botonReportes)) b.getStyleClass().remove("active");
+        for (Button b : List.of(botonInicio, botonFavoritos, botonReportes, botonMenu)) b.getStyleClass().remove("active");
         active.getStyleClass().add("active");
     }
+
+    public void mostrarMenu() {
+        mostrandoMenu = true; mostrandoReportes = false;
+        root.setCenter(vistaMenu); setNav(botonMenu);
+    }
+
+    public MenuView getVistaMenu() { return vistaMenu; }
+    public void setAccionVerMenu(Runnable accion) { accionVerMenu = accion; }
 
     public void mostrarMensaje(String title, String text) { alert(Alert.AlertType.INFORMATION, title, text); }
     public void mostrarError(String text) { alert(Alert.AlertType.ERROR, "Algo salió mal", text); }

@@ -83,6 +83,8 @@ public class UsuarioController {
                     restauranteController
             );
 
+            new MenuController(estudianteFrame);
+
         } else {
 
             loginView.mostrarMensaje(
