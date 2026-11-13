@@ -524,6 +524,9 @@ public class EstudianteFrame {
             case "gitane" -> "cafe_gitane.jpg";
             case "gogreen" -> "gogreen.jfif";
             case "sarita" -> "sarita.jfif";
+            case "panitos" -> "panitos.jpeg";
+            case "mixtas frankfurt" -> "mixtas.jpeg";
+            case "golden harvest" -> "golden.jpeg";
             default -> "cafe_barista.jpg";
         };
         return new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/" + file)));
