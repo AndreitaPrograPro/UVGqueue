@@ -3,7 +3,6 @@ package controller;
 import dao.ReporteDAO;
 import dao.RestauranteDAO;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,179 +14,185 @@ import model.*;
 import view.*;
 
 public class ReporteController {
-        private final EstudianteFrame estudianteFrame;
-        private final ReporteDAO reporteDAO;
-        private final RestauranteDAO restauranteDAO;
-        private final Usuario usuarioActivo;
-        private final Timeline temporizadorPromedios;
-        public ReporteController(
-                EstudianteFrame estudianteFrame,
-                Usuario usuarioActivo
-        ) {
-                this.estudianteFrame = estudianteFrame;
-                this.usuarioActivo = usuarioActivo;
-                this.reporteDAO = new ReporteDAO();
-                this.restauranteDAO = new RestauranteDAO();
-                estudianteFrame.setAccionReportar(this::procesarReporte);
-                estudianteFrame.setAccionVerReportes(this::cargarMisReportes);
-                estudianteFrame.getBotonActualizar().addEventHandler(
-                        ActionEvent.ACTION, evento -> cargarPromedios());
-                estudianteFrame.setAccionVerDetalle(
-                this::mostrarDetalleRestaurante);
 
-                cargarPromedios();
+    private final EstudianteFrame estudianteFrame;
+    private final ReporteDAO reporteDAO;
+    private final RestauranteDAO restauranteDAO;
+    private final Usuario usuarioActivo;
+    private final Timeline temporizadorPromedios;
 
-                temporizadorPromedios = new Timeline(new KeyFrame(
-                        Duration.seconds(60), evento -> cargarPromedios()));
-                temporizadorPromedios.setCycleCount(Timeline.INDEFINITE);
-                temporizadorPromedios.play();
-        }
-        private void procesarReporte(Restaurante restaurante) {
+    public ReporteController(
+            EstudianteFrame estudianteFrame,
+            Usuario usuarioActivo
+    ) {
+        this.estudianteFrame = estudianteFrame;
+        this.usuarioActivo = usuarioActivo;
+        this.reporteDAO = new ReporteDAO();
+        this.restauranteDAO = new RestauranteDAO();
 
-                if (!restauranteDisponible(restaurante)) {
-                estudianteFrame.mostrarError(
-                        "Este restaurante no está disponible "
-                        + "para reportes de fila."
-                );
-                return;
-                }
-                FormularioView formulario = new FormularioView();
+        estudianteFrame.setAccionReportar(this::procesarReporte);
+        estudianteFrame.setAccionVerReportes(this::cargarMisReportes);
+        estudianteFrame.setAccionVerDetalle(this::mostrarDetalleRestaurante);
 
-                formulario.setAccionEnviar(
-                        (cantidadPersonas, minutosEspera) ->
-                                guardarReporte(
-                                        restaurante,
-                                        cantidadPersonas,
-                                        (int) Math.round(minutosEspera),
-                                        formulario
-                                )
-                );
-                formulario.show();
-        }
-        private boolean restauranteDisponible(
-                Restaurante restaurante
-        ) {
-                return restauranteDAO.obtenerTodos()
-                        .stream()
-                        .filter(actual -> actual.getNombre().equals(
-                                restaurante.getNombre()
-                        ))
-                        .findFirst()
-                        .map(Restaurante::permiteReportes)
-                        .orElse(false);
-        }
-        private void guardarReporte(
-                Restaurante restaurante,
-                int cantidadPersonas,
-                int tiempoEspera,
-                FormularioView formulario
-        ) {
-                if (!restauranteDisponible(restaurante)) {
-                estudianteFrame.mostrarError(
-                        "El restaurante ya no está disponible. "
-                        + "No se puede guardar el reporte."
-                );
-                return;
-                }
+        estudianteFrame.getBotonActualizar().addEventHandler(
+                ActionEvent.ACTION,
+                evento -> cargarPromedios()
+        );
 
-                Reporte reporte = new Reporte(
-                        usuarioActivo,
-                        cantidadPersonas,
-                        tiempoEspera
-                );
+        cargarPromedios();
 
-                if (!reporteDAO.registrar(reporte, restaurante)) {
-                estudianteFrame.mostrarError(
-                        "No fue posible guardar el reporte."
-                );
-                return;
-                }
+        temporizadorPromedios = new Timeline(
+                new KeyFrame(
+                        Duration.seconds(60),
+                        evento -> cargarPromedios()
+                )
+        );
+        temporizadorPromedios.setCycleCount(Timeline.INDEFINITE);
+        temporizadorPromedios.play();
 
-                restaurante.agregarReporte(reporte);
-                formulario.close();
-                cargarPromedios();
+        // Detiene las actualizaciones cuando se cierre la ventana.
+        estudianteFrame.getStage().addEventHandler(
+                javafx.stage.WindowEvent.WINDOW_HIDDEN,
+                evento -> temporizadorPromedios.stop()
+        );
+    }
 
-                estudianteFrame.mostrarMensaje(
-                        "Reporte registrado",
-                        "Gracias por compartir la información."
-                );
+    private void procesarReporte(Restaurante restaurante) {
+        if (!restauranteDisponible(restaurante)) {
+            estudianteFrame.mostrarError(
+                    "Este restaurante no está disponible "
+                    + "para reportes de fila."
+            );
+            return;
         }
 
-        public void cargarPromedios() {
+        FormularioView formulario = new FormularioView();
 
-                LocalDateTime horaActual = LocalDateTime.now();
-
-                Map<String, ArrayList<Integer>> tiempos =
-                        reporteDAO.obtenerTiempos(
-                                horaActual.minusMinutes(30),
-                                horaActual.plusMinutes(30)
-                        );
-
-                Map<String, Integer> promedios = new HashMap<>();
-
-                tiempos.forEach((restaurante, lista) -> {
-                if (lista != null && !lista.isEmpty()) {
-                        promedios.put(
+        formulario.setAccionEnviar(
+                (cantidadPersonas, minutosEspera) ->
+                        guardarReporte(
                                 restaurante,
-                                calcularPromedio(lista)
-                        );
-                }
-                });
+                                cantidadPersonas,
+                                (int) Math.round(minutosEspera),
+                                formulario
+                        )
+        );
 
-                estudianteFrame.mostrarPromedios(promedios);
+        formulario.show();
+    }
+
+    private boolean restauranteDisponible(Restaurante restaurante) {
+        return restauranteDAO.obtenerTodos().stream()
+                .filter(actual -> actual.getNombre().equals(
+                        restaurante.getNombre()
+                ))
+                .findFirst()
+                .map(Restaurante::permiteReportes)
+                .orElse(false);
+    }
+
+    private void guardarReporte(
+            Restaurante restaurante,
+            int cantidadPersonas,
+            int tiempoEspera,
+            FormularioView formulario
+    ) {
+        if (!restauranteDisponible(restaurante)) {
+            estudianteFrame.mostrarError(
+                    "El restaurante ya no está disponible. "
+                    + "No se puede guardar el reporte."
+            );
+            return;
         }
 
-        private int calcularPromedio(
-                ArrayList<Integer> tiempos
-        ) {
-                return (int) Math.round(
-                        tiempos.stream()
-                                .mapToInt(Integer::intValue)
-                                .average()
-                                .orElse(0)
+        // El modelo asigna automáticamente la fecha y hora.
+        Reporte reporte = new Reporte(
+                usuarioActivo,
+                cantidadPersonas,
+                tiempoEspera
+        );
+
+        if (!reporteDAO.registrar(reporte, restaurante)) {
+            estudianteFrame.mostrarError(
+                    "No fue posible guardar el reporte."
+            );
+            return;
+        }
+
+        restaurante.agregarReporte(reporte);
+        formulario.close();
+        cargarPromedios();
+
+        estudianteFrame.mostrarMensaje(
+                "Reporte registrado",
+                "Gracias por compartir la información."
+        );
+    }
+
+    public void cargarPromedios() {
+        LocalDateTime ahora = LocalDateTime.now();
+
+        // Promedio de todos los reportes de cada restaurante.
+        Map<String, Integer> globales = calcularPromedios(
+                reporteDAO.obtenerTiempos()
+        );
+
+        // Promedio únicamente de los últimos 30 minutos.
+        Map<String, Integer> actuales = calcularPromedios(
+                reporteDAO.obtenerTiempos(
+                        ahora.minusMinutes(30),
+                        ahora
+                )
+        );
+
+        estudianteFrame.mostrarPromedios(globales, actuales);
+    }
+
+    private Map<String, Integer> calcularPromedios(
+            Map<String, ArrayList<Integer>> tiempos
+    ) {
+        Map<String, Integer> promedios = new HashMap<>();
+
+        tiempos.forEach((restaurante, lista) -> {
+            if (lista != null && !lista.isEmpty()) {
+                promedios.put(restaurante, calcularPromedio(lista));
+            }
+        });
+
+        return promedios;
+    }
+
+    private int calcularPromedio(ArrayList<Integer> tiempos) {
+        if (tiempos == null || tiempos.isEmpty()) {
+            return 0;
+        }
+
+        return (int) Math.round(
+                tiempos.stream()
+                        .mapToInt(Integer::intValue)
+                        .average()
+                        .orElse(0)
+        );
+    }
+
+    private void cargarMisReportes() {
+        estudianteFrame.mostrarMisReportes(
+                reporteDAO.obtenerPorUsuario(usuarioActivo)
+        );
+    }
+
+    private void mostrarDetalleRestaurante(Restaurante restaurante) {
+        Map<Integer, Double> promediosPorHora =
+                reporteDAO.obtenerPromediosPorHora(
+                        restaurante.getNombre()
                 );
-        }
 
-        private void cargarMisReportes() {
-                estudianteFrame.mostrarMisReportes(
-                        reporteDAO.obtenerPorUsuario(usuarioActivo)
-                );
-        }
-        private void mostrarDetalleRestaurante(
-                        Restaurante restaurante
-                ) {
-                LocalDateTime fechaInicio =
-                        LocalDateTime.of(
-                                2026, 1, 1,
-                                0, 0
-                        );
+        RestauranteDetalleFrame detalle = new RestauranteDetalleFrame(
+                restaurante,
+                estudianteFrame.getPromedio(restaurante.getNombre()),
+                promediosPorHora
+        );
 
-                LocalDateTime fechaFin =
-                        LocalDateTime.now();
-
-                Map<String, ArrayList<Integer>> tiemposPorRestaurante =
-                        reporteDAO.obtenerTiempos(
-                                fechaInicio,
-                                fechaFin
-                        );
-
-                ArrayList<Integer> tiempos =
-                        tiemposPorRestaurante.getOrDefault(
-                                restaurante.getNombre(),
-                                new ArrayList<>()
-                        );
-
-                Integer promedio = tiempos.isEmpty()
-                        ? null
-                        : calcularPromedio(tiempos);
-
-                RestauranteDetalleFrame detalle =
-                        new RestauranteDetalleFrame(
-                                restaurante,
-                                promedio,
-                                tiempos
-                        );
-
-                detalle.show();
-        }
+        detalle.show();
+    }
 }

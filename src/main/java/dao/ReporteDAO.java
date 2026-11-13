@@ -134,5 +134,68 @@ public class ReporteDAO {
         }
         return reportes;
     }
+    public Map<Integer, Double> obtenerPromediosPorHora(String nombreRestaurante) {
+        Map<Integer, Double> promedios = new HashMap<>();
+        String sql = """
+                    SELECT
+                        HOUR(reporte.fecha_hora) AS hora,
+                        AVG(reporte.tiempo_espera) AS promedio
+                    FROM reporte
+                    INNER JOIN restaurante
+                        ON reporte.id_restaurante = restaurante.id_restaurante
+                    WHERE restaurante.nombre = ?
+                    AND HOUR(reporte.fecha_hora) >= 7
+                    AND HOUR(reporte.fecha_hora) < 20
+                    GROUP BY HOUR(reporte.fecha_hora)
+                    ORDER BY hora
+                    """;
 
+            try (
+                Connection connection = Databaseconnection.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)
+            ) {
+                statement.setString(1, nombreRestaurante);
+
+                try (ResultSet resultado = statement.executeQuery()) {
+                    while (resultado.next()) {
+                        promedios.put(
+                                resultado.getInt("hora"),
+                                resultado.getDouble("promedio")
+                        );
+                    }
+                }
+            } catch (SQLException excepcion) {
+                System.out.println("No fue posible obtener los promedios por hora.");
+                excepcion.printStackTrace();
+            }
+
+            return promedios;
+        }
+        public Map<String, ArrayList<Integer>> obtenerTiempos() {
+        Map<String, ArrayList<Integer>> tiempos = new HashMap<>();
+
+        String sql = """
+                SELECT restaurante.nombre, reporte.tiempo_espera
+                FROM reporte
+                INNER JOIN restaurante
+                    ON reporte.id_restaurante = restaurante.id_restaurante
+                """;
+
+        try (
+            Connection connection = Databaseconnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet resultado = statement.executeQuery()
+        ) {
+            while (resultado.next()) {
+                tiempos.computeIfAbsent(
+                        resultado.getString("nombre"),
+                        clave -> new ArrayList<>()
+                ).add(resultado.getInt("tiempo_espera"));
+            }
+        } catch (SQLException excepcion) {
+            System.out.println("No fue posible obtener los tiempos globales.");
+            excepcion.printStackTrace();
+        }
+        return tiempos;
+    }
 }
