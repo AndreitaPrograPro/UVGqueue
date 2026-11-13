@@ -1,5 +1,7 @@
 package view;
-
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.shape.Rectangle;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -13,7 +15,6 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -48,6 +49,7 @@ public class EstudianteFrame {
 
     private List<Restaurante> restaurantes = new ArrayList<>();
     private Map<String, Integer> tiemposPromedio = new HashMap<>();
+    private Map<String, Integer> tiemposActuales = new HashMap<>();
     private Set<String> favoritos = new HashSet<>();
     private boolean soloFavoritos;
     private boolean mostrandoReportes;
@@ -243,106 +245,262 @@ public class EstudianteFrame {
         actualizarQuick();
         animarEntrada();
     }
-
     private Pane crearTarjeta(Restaurante r) {
         StackPane card = new StackPane();
         card.getStyleClass().add("restaurant-card");
-        card.setPrefWidth(390);
-        card.setPrefHeight(340);
-        card.setMinHeight(340);
+        card.setPrefSize(390, 360);
+        card.setMinHeight(360);
         card.setMaxWidth(Double.MAX_VALUE);
         card.setCursor(Cursor.HAND);
+        card.setPadding(Insets.EMPTY);
 
-        ImageView image = new ImageView(cargarImagen(r.getNombre()));
-        image.setFitHeight(340);
-        image.setFitWidth(390);
+        // Fotografía con recorte centrado, sin deformación.
+        Image foto = cargarImagen(r.getNombre());
+        ImageView image = new ImageView(foto);
+        image.setManaged(false);
+        image.setMouseTransparent(true);
+        image.setSmooth(true);
         image.setPreserveRatio(false);
-        Rectangle clip = new Rectangle(390, 340);
-        clip.setArcWidth(44); clip.setArcHeight(44);
-        image.setClip(clip);
+        image.fitWidthProperty().bind(card.widthProperty());
+        image.fitHeightProperty().bind(card.heightProperty());
+
+        Runnable ajustarImagen = () -> {
+            double ancho = card.getWidth();
+            double alto = card.getHeight();
+
+            if (ancho <= 0 || alto <= 0
+                    || foto.getWidth() <= 0 || foto.getHeight() <= 0) {
+                return;
+            }
+
+            double escala = Math.max(
+                    ancho / foto.getWidth(),
+                    alto / foto.getHeight()
+            );
+
+            double anchoRecorte = ancho / escala;
+            double altoRecorte = alto / escala;
+
+            image.setViewport(new javafx.geometry.Rectangle2D(
+                    (foto.getWidth() - anchoRecorte) / 2,
+                    (foto.getHeight() - altoRecorte) / 2,
+                    anchoRecorte,
+                    altoRecorte
+            ));
+        };
+
+        card.widthProperty().addListener(
+                (o, antes, ahora) -> ajustarImagen.run()
+        );
+        card.heightProperty().addListener(
+                (o, antes, ahora) -> ajustarImagen.run()
+        );
+
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(card.widthProperty());
+        clip.heightProperty().bind(card.heightProperty());
+        clip.setArcWidth(44);
+        clip.setArcHeight(44);
+        card.setClip(clip);
 
         BorderPane overlay = new BorderPane();
         overlay.getStyleClass().add("card-overlay");
         overlay.setPadding(new Insets(16, 17, 17, 17));
+        overlay.setStyle(
+                "-fx-background-color: linear-gradient("
+                + "to bottom, rgba(0,0,0,0.12) 0%, "
+                + "rgba(0,0,0,0.20) 40%, "
+                + "rgba(0,0,0,0.85) 100%);"
+        );
+
+        boolean abierto =
+                r.getEstadoActual() == EstadoRestaurante.ABIERTO;
 
         Label state = new Label(estadoTexto(r));
-        state.getStyleClass().add(r.getEstadoActual() == EstadoRestaurante.ABIERTO ? "status-open" : "status-closed");
+        state.getStyleClass().add(
+                abierto ? "status-open" : "status-closed"
+        );
 
-        boolean favorite = favoritos.contains(r.getNombre());
-        Button fav = new Button(favorite ? "♥" : "♡");
-        fav.setAccessibleText(favorite ? "Quitar de favoritos" : "Agregar a favoritos");
-        fav.setTooltip(new Tooltip(favorite ? "Quitar de favoritos" : "Agregar a favoritos"));
+        boolean favorito = favoritos.contains(r.getNombre());
+        String textoFavorito = favorito
+                ? "Quitar de favoritos"
+                : "Agregar a favoritos";
+
+        Button fav = new Button(favorito ? "♥" : "♡");
         fav.getStyleClass().add("favorite-button");
-        if (favorite) fav.getStyleClass().add("selected");
-        fav.setOnAction(e -> { if (accionAlternarFavorito != null) accionAlternarFavorito.accept(r); });
+        fav.setAccessibleText(textoFavorito);
+        fav.setTooltip(new Tooltip(textoFavorito));
+
+        if (favorito) {
+            fav.getStyleClass().add("selected");
+        }
+
+        fav.setOnAction(e -> {
+            if (accionAlternarFavorito != null) {
+                accionAlternarFavorito.accept(r);
+            }
+        });
+
         HBox top = new HBox(state, spacer(), fav);
         top.setAlignment(Pos.TOP_LEFT);
         overlay.setTop(top);
 
         Label name = new Label(r.getNombre());
         name.getStyleClass().add("card-title");
+        name.setWrapText(true);
+
         Label location = new Label("⌖  " + r.getUbicacion());
         location.getStyleClass().add("card-muted");
-        Integer avg = tiemposPromedio.get(r.getNombre());
-        Label wait = new Label(avg == null ? "◷  Sin reportes recientes" : "◷  " + avg + " min de espera promedio");
-        wait.getStyleClass().add("card-wait");
+        location.setWrapText(true);
+
+        // Promedio de todos los reportes del restaurante.
+        Integer global = tiemposPromedio.get(r.getNombre());
+
+        Label promedioGlobal = new Label(
+                global == null
+                        ? "◷  Promedio global: sin reportes"
+                        : "◷  Promedio global: " + global + " min"
+        );
+        promedioGlobal.getStyleClass().add("card-wait");
+        promedioGlobal.setWrapText(true);
+        promedioGlobal.setVisible(abierto);
+        promedioGlobal.setManaged(abierto);
+
+        // Promedio de los reportes de los últimos 30 minutos.
+        Integer actual = tiemposActuales.get(r.getNombre());
+
+        Label esperaActual = new Label(
+                actual == null
+                        ? "◷  Espera actual: sin reportes recientes"
+                        : "◷  Espera actual: " + actual + " min"
+        );
+        esperaActual.getStyleClass().add("card-wait");
+        esperaActual.setWrapText(true);
+        esperaActual.setTooltip(
+                new Tooltip("Basado en reportes de los últimos 30 minutos")
+        );
+        esperaActual.setVisible(abierto);
+        esperaActual.setManaged(abierto);
 
         Button report = new Button("Reportar fila");
         report.getStyleClass().add("card-action");
-        report.setDisable(r.getEstadoActual() != EstadoRestaurante.ABIERTO);
-        report.setOnAction(e -> { if (accionReportar != null) accionReportar.accept(r); });
+        report.setDisable(!abierto);
+        report.setOnAction(e -> {
+            if (accionReportar != null) {
+                accionReportar.accept(r);
+            }
+        });
 
         Button open = new Button("Está abierto");
         open.getStyleClass().add("card-action");
+        open.setDisable(!r.estaEnHorario());
+        open.setOnAction(e -> {
+            if (accionVerificarCierre != null) {
+                accionVerificarCierre.accept(r, false);
+            }
+        });
+
         Button closed = new Button("Reportar cierre");
         closed.getStyleClass().add("card-action-danger");
-        open.setDisable(!r.estaEnHorario()); closed.setDisable(!r.estaEnHorario());
-        open.setOnAction(e -> { if (accionVerificarCierre != null) accionVerificarCierre.accept(r, false); });
-        closed.setOnAction(e -> { if (accionVerificarCierre != null) accionVerificarCierre.accept(r, true); });
+        closed.setDisable(!r.estaEnHorario());
+        closed.setOnAction(e -> {
+            if (accionVerificarCierre != null) {
+                accionVerificarCierre.accept(r, true);
+            }
+        });
+
         HBox actions = new HBox(8, report, open, closed);
+
         for (Button button : List.of(report, open, closed)) {
             HBox.setHgrow(button, Priority.ALWAYS);
             button.setMaxWidth(Double.MAX_VALUE);
         }
-        VBox info = new VBox(5, name, location, wait, space(5), actions);
+
+        VBox info = new VBox(
+                5, name, location, promedioGlobal,
+                esperaActual, space(5), actions
+        );
         overlay.setBottom(info);
+
         card.getChildren().addAll(image, overlay);
+
         card.setOnMouseClicked(e -> {
+            if (!(e.getTarget() instanceof Node)) {
+                return;
+            }
+
             Node target = (Node) e.getTarget();
+
             while (target != null) {
-                if (target instanceof Button) return;
+                if (target instanceof Button) {
+                    return;
+                }
                 target = target.getParent();
             }
-            if (accionVerDetalle != null) accionVerDetalle.accept(r);
+
+            if (accionVerDetalle != null) {
+                accionVerDetalle.accept(r);
+            }
         });
+
         return card;
     }
-
     private void actualizarQuick() {
         quickContent.getChildren().clear();
         List<Restaurante> conTiempo = restaurantes.stream()
-                .filter(r -> r.getEstadoActual() == EstadoRestaurante.ABIERTO && tiemposPromedio.containsKey(r.getNombre()))
-                .sorted(Comparator.comparingInt(r -> tiemposPromedio.get(r.getNombre()))).toList();
+                .filter(r ->
+                        r.getEstadoActual() == EstadoRestaurante.ABIERTO
+                        && tiemposActuales.containsKey(r.getNombre())
+                )
+                .sorted(Comparator.comparingInt(
+                        r -> tiemposActuales.get(r.getNombre())
+                ))
+                .toList();
+
         if (conTiempo.isEmpty()) {
-            Label waiting = new Label("Los próximos reportes aparecerán aquí");
+            Label waiting = new Label(
+                    "Sin reportes en los últimos 30 minutos"
+            );
             waiting.getStyleClass().add("muted");
             quickContent.getChildren().add(waiting);
             return;
         }
+
         LinkedHashSet<Restaurante> picks = new LinkedHashSet<>();
         picks.add(conTiempo.get(0));
-        conTiempo.stream().filter(r -> favoritos.contains(r.getNombre())).findFirst().ifPresent(picks::add);
-        for (Restaurante r : conTiempo) { if (picks.size() >= 2) break; picks.add(r); }
-        picks.forEach(r -> quickContent.getChildren().add(quickChip(r, r.equals(conTiempo.get(0)))));
+
+        conTiempo.stream()
+                .filter(r -> favoritos.contains(r.getNombre()))
+                .findFirst()
+                .ifPresent(picks::add);
+
+        for (Restaurante r : conTiempo) {
+            if (picks.size() >= 2) break;
+            picks.add(r);
+        }
+
+        picks.forEach(r -> quickContent.getChildren().add(
+                quickChip(r, r.equals(conTiempo.get(0)))
+        ));
     }
 
     private Pane quickChip(Restaurante r, boolean fastest) {
-        Label icon = new Label(favoritos.contains(r.getNombre()) ? "♥" : "◷");
+        Label icon = new Label(
+                favoritos.contains(r.getNombre()) ? "♥" : "◷"
+        );
         icon.setStyle("-fx-font-size:20px;-fx-text-fill:#E85D3F;");
-        Label name = new Label(r.getNombre() + " · " + tiemposPromedio.get(r.getNombre()) + " min");
+
+        Label name = new Label(
+                r.getNombre() + " · "
+                + tiemposActuales.get(r.getNombre()) + " min"
+        );
         name.setStyle("-fx-font-weight:bold;-fx-text-fill:#3B2A20;");
-        Label note = new Label(fastest ? "La fila más rápida" : "Uno de tus favoritos");
+
+        Label note = new Label(
+                fastest ? "Menor espera actual" : "Otra opción con espera reciente"
+        );
         note.getStyleClass().add("muted");
+
         HBox chip = new HBox(10, icon, new VBox(1, name, note));
         chip.getStyleClass().add("quick-chip");
         chip.setAlignment(Pos.CENTER_LEFT);
@@ -384,7 +542,11 @@ public class EstudianteFrame {
     }
 
     public void mostrarFavoritos(Set<String> favoritos) { this.favoritos = new HashSet<>(favoritos); aplicarFiltros(); }
-    public void mostrarPromedios(Map<String, Integer> promedios) { tiemposPromedio = new HashMap<>(promedios); aplicarFiltros(); }
+    public void mostrarPromedios(Map<String, Integer> globales,Map<String, Integer> actuales) {
+        tiemposPromedio = new HashMap<>(globales);
+        tiemposActuales = new HashMap<>(actuales);
+        aplicarFiltros();
+        }
     public void mostrarSoloFavoritos(boolean value) {
         mostrandoMenu = false; root.setCenter(contenidoPrincipal);
         mostrandoReportes = false; soloFavoritos = value;
@@ -451,4 +613,7 @@ public class EstudianteFrame {
     public void setAccionVerificarCierre(BiConsumer<Restaurante, Boolean> a) { accionVerificarCierre = a; }
     public void setAccionVerReportes(Runnable a) { accionVerReportes = a; }
     public void setAccionVerDetalle(Consumer<Restaurante> a) { accionVerDetalle = a; }
+    public Integer getPromedio(String nombreRestaurante) {
+        return tiemposPromedio.get(nombreRestaurante);
+    }
 }
