@@ -135,9 +135,19 @@ public class EstudianteFrame {
         HBox.setHgrow(campoBusqueda, Priority.ALWAYS);
         campoBusqueda.setMaxWidth(Double.MAX_VALUE);
 
-        filtroEstado.setItems(FXCollections.observableArrayList("Todos", "Abiertos", "Cerrados"));
+        filtroEstado.setItems(FXCollections.observableArrayList(
+                "Todos",
+                "Abiertos",
+                "Cerrados",
+                "Menor tiempo de espera",
+                "Mayor tiempo de espera"
+        ));
         filtroEstado.setValue("Todos");
-        filtroEstado.setPrefWidth(145);
+        filtroEstado.setPrefWidth(205);
+        filtroEstado.setTooltip(new Tooltip(
+                "Filtra por estado u ordena por la espera de los últimos 30 minutos"
+        ));
+
         botonActualizar.getStyleClass().add("primary-button");
         HBox tools = new HBox(12, search, filtroEstado, botonActualizar);
         HBox.setHgrow(search, Priority.ALWAYS);
@@ -220,15 +230,55 @@ public class EstudianteFrame {
         if (mostrandoReportes || mostrandoMenu) return;
         String q = campoBusqueda.getText() == null ? "" : campoBusqueda.getText().trim().toLowerCase(Locale.ROOT);
         String estado = filtroEstado.getValue();
-        List<Restaurante> visibles = restaurantes.stream().filter(r -> {
+        List<Restaurante> visibles = new ArrayList<>(restaurantes.stream().filter(r -> {
             boolean texto = r.getNombre().toLowerCase(Locale.ROOT).contains(q)
                     || r.getUbicacion().toLowerCase(Locale.ROOT).contains(q);
             boolean abierto = r.getEstadoActual() == EstadoRestaurante.ABIERTO;
-            boolean filtro = "Todos".equals(estado) || ("Abiertos".equals(estado) && abierto)
+            boolean opcionDeOrden = "Menor tiempo de espera".equals(estado)
+                    || "Mayor tiempo de espera".equals(estado);
+            boolean filtro = "Todos".equals(estado) || opcionDeOrden
+                    || ("Abiertos".equals(estado) && abierto)
                     || ("Cerrados".equals(estado) && !abierto);
             return texto && filtro && (!soloFavoritos || favoritos.contains(r.getNombre()));
-        }).toList();
+        }).toList());
+
+        ordenarPorTiempo(visibles, estado);
         actualizarTarjetas(visibles);
+    }
+
+    private void ordenarPorTiempo(
+            List<Restaurante> visibles,
+            String opcionSeleccionada) {
+
+        boolean menor = "Menor tiempo de espera".equals(
+                opcionSeleccionada
+        );
+        boolean mayor = "Mayor tiempo de espera".equals(
+                opcionSeleccionada
+        );
+
+        if (!menor && !mayor) {
+            return;
+        }
+
+        Comparator<Integer> ordenNumerico =
+                mayor
+                        ? Comparator.reverseOrder()
+                        : Comparator.naturalOrder();
+
+        Comparator<Restaurante> comparador = Comparator
+                .comparing(
+                        (Restaurante restaurante) -> tiemposActuales.get(
+                                restaurante.getNombre()
+                        ),
+                        Comparator.nullsLast(ordenNumerico)
+                )
+                .thenComparing(
+                        Restaurante::getNombre,
+                        String.CASE_INSENSITIVE_ORDER
+                );
+
+        visibles.sort(comparador);
     }
 
     private void actualizarTarjetas(List<Restaurante> visibles) {
@@ -554,14 +604,17 @@ public class EstudianteFrame {
         mostrandoMenu = false; root.setCenter(contenidoPrincipal);
         mostrandoReportes = false; soloFavoritos = value;
         titulo.setText(value ? "Tus restaurantes favoritos" : "¿Dónde quieres comer hoy?");
-        campoBusqueda.setDisable(false); filtroEstado.setDisable(false);
+        campoBusqueda.setDisable(false);
+        filtroEstado.setDisable(false);
         setNav(value ? botonFavoritos : botonInicio); aplicarFiltros();
     }
 
     public void mostrarMisReportes(List<Reporte> reportes) {
         mostrandoMenu = false; root.setCenter(contenidoPrincipal);
         mostrandoReportes = true; titulo.setText("Mis reportes");
-        campoBusqueda.setDisable(true); filtroEstado.setDisable(true); setNav(botonReportes);
+        campoBusqueda.setDisable(true);
+        filtroEstado.setDisable(true);
+        setNav(botonReportes);
         tarjetas.getChildren().clear(); resumen.setText(reportes.size() == 1 ? "1 reporte" : reportes.size() + " reportes");
         if (reportes.isEmpty()) {
             Label empty = new Label("Todavía no has realizado reportes"); empty.getStyleClass().add("empty-state");

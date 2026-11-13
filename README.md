@@ -18,7 +18,7 @@ tiempo esperando.
 - Sugerencias Quick, priorizando filas cortas y favoritos.
 - Favoritos, verificaciones de cierre e historial de reportes.
 - Detalle de restaurantes con gráfica de tiempos.
-- Búsqueda y filtros por estado.
+- Búsqueda y un filtro único con opciones de estado, menor espera y mayor espera.
 - Interfaz JavaFX con menú lateral retráctil.
 # Tecnologías
 - Java 21 o superior.
@@ -50,31 +50,20 @@ FastQueue/
             ├── images/
             └── styles/
             
-## Información base de datos
-Se usó el servicio de AIVEN gratis: 1GB RAM, 1GB Storage, 1 CPU
-Version: MySQL 8.4.11
-Maintenance window: Saturdays after 09:15:24 UTC
-Tabla de información:
-Host        |   mysql-154b58c1-uvgqueue.f.aivencloud.com
-Puerto      |   17652
-Nombre base |   uvgqueue
-Usuario     |   avnadmin
-Contraseña  |   AVNS_eX9Ad_u3Z7hlyeCPOcv
-Certificado |   C:\...\UVGqueue\cartificates\ca.pem
+## Información de la base de datos
+La aplicación usa MySQL alojado en Aiven. Las credenciales no se guardan en el
+repositorio; cada integrante debe configurar localmente estas variables de entorno:
 
+| Variable | Descripción |
+|---|---|
+| `DB_HOST` | Dirección del servidor |
+| `DB_PORT` | Puerto del servidor |
+| `DB_NAME` | Nombre de la base |
+| `DB_USER` | Usuario de conexión |
+| `DB_PASSWORD` | Contraseña de conexión |
+| `DB_SSL_CA` | URI local de `cartificates/ca.pem` |
 
-## Cómo conectar la base de datos
-Windows(tested):
-Agregar variables de usuario(Edit environment variables for your account/Editar las variables de entorno de esta cuenta)
-Variable    |   Valor
-==========================================================
-DB_HOST     |   mysql-154b58c1-uvgqueue.f.aivencloud.com
-DB_PORT     |   17652
-DB_NAME     |   uvgqueue
-DB_USER     |   avnadmin
-DB_PASSWORD |   AVNS_eX9Ad_u3Z7hlyeCPOcv
-DB_SSL_CA   |   C:\...\UVGqueue\cartificates\ca.pem
-==========================================================
+Los valores reales deben compartirse por un medio privado y nunca agregarse a Git.
 
 
 ## Acceder/editar base de datos
@@ -82,9 +71,9 @@ Se usó DBeaver para la creación y manejo del SQL.
 1. Click: Database -> New Database Connection -> MySQL -> Next -> Controller for SQL 8+ -> Next
 2. Copiar Server Host, Port, Database, User Name, Password.
 3. Abrir pestaña SSL en el + verde arriba a la derecha de esta pestaña.
-4. Agregar la ruta del certificado en CA Certificate: C:\...\UVGqueue\cartificates\ca.pem
+4. Agregar la ruta local del certificado `cartificates/ca.pem`.
 5. Click: Probar conexión y descargar drivers de ser necesario.
 6. Click: Finalizar
 
-##Cómo compilar y ejecutar
+## Cómo compilar y ejecutar
 mvn clean compile javafx:run
