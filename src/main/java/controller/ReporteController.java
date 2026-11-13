@@ -130,23 +130,25 @@ public class ReporteController {
     }
 
     public void cargarPromedios() {
-        LocalDateTime ahora = LocalDateTime.now();
-
-        // Promedio de todos los reportes de cada restaurante.
+    LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime inicioDia = ahora.toLocalDate().atStartOfDay();
+        LocalDateTime finDia = ahora.toLocalDate()
+                .atTime(23, 59, 59, 999_999_999);
+        LocalDateTime inicio = ahora.minusMinutes(30);
+        LocalDateTime fin = ahora.plusMinutes(30);
+        if (inicio.isBefore(inicioDia)) {
+                inicio = inicioDia;
+        }
+        if (fin.isAfter(finDia)) {
+                fin = finDia;
+        }
         Map<String, Integer> globales = calcularPromedios(
-                reporteDAO.obtenerTiempos()
+                reporteDAO.obtenerTiempos(inicio, fin)
         );
-
-        // Promedio únicamente de los últimos 30 minutos.
         Map<String, Integer> actuales = calcularPromedios(
-                reporteDAO.obtenerTiempos(
-                        ahora.minusMinutes(30),
-                        ahora
-                )
-        );
-
+                reporteDAO.obtenerTiempos(ahora.minusMinutes(30),ahora));
         estudianteFrame.mostrarPromedios(globales, actuales);
-    }
+        }
 
     private Map<String, Integer> calcularPromedios(
             Map<String, ArrayList<Integer>> tiempos
