@@ -6,7 +6,7 @@ public class Reporte {
     private int tiempoEspera;
     private LocalDateTime fechaHora;
     private String nombreRestaurante;
-
+    private int idReporte;
     public Reporte(Usuario usuario, int cantidadPersonas, int tiempoEspera){
         this.usuario = usuario;
         this.cantidadPersonas = cantidadPersonas;
@@ -34,5 +34,11 @@ public class Reporte {
     }
     public String getNombreRestaurante() {
     return nombreRestaurante;
+    }
+    public int getIdReporte() {
+        return idReporte;
+    }
+    public void setIdReporte(int idReporte) {
+        this.idReporte = idReporte;
     }
 }
