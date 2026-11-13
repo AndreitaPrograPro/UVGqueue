@@ -48,34 +48,32 @@ public class UsuarioController {
                 )
         );
     }
-
     private void procesarInicioSesion() {
-
         String identificador = loginView.getLoginUser();
         String contrasena = loginView.getLoginPassword();
 
-        if (iniciarSesion(identificador, contrasena)) {
-
+        if (!iniciarSesion(identificador, contrasena)) {
             loginView.mostrarMensaje(
-                    "Inicio de Sesión",
-                    "Bienvenido " + usuarioActivo.getNombre()
+                    "Error",
+                    "Usuario o contraseña incorrectos"
             );
+            return;
+        }
+        if (usuarioActivo.getTipo() == TipoUsuario.COLABORADOR) {
+            ColaboradorFrame colaboradorFrame =
+        new ColaboradorFrame(usuarioActivo.getNombre());
+        new ColaboradorController(colaboradorFrame);
+        colaboradorFrame.show();
 
+        } else {
             EstudianteFrame estudianteFrame =
                     new EstudianteFrame(usuarioActivo.getNombre());
-
-            estudianteFrame.show();
-            loginView.close();
 
             RestauranteController restauranteController =
                     new RestauranteController(estudianteFrame);
 
-                new ReporteController(estudianteFrame,usuarioActivo);
-
-            new FavoritoController(
-                    estudianteFrame,
-                    usuarioActivo
-            );
+            new ReporteController(estudianteFrame, usuarioActivo);
+            new FavoritoController(estudianteFrame, usuarioActivo);
 
             new ReporteCierreController(
                     estudianteFrame,
@@ -85,15 +83,11 @@ public class UsuarioController {
 
             new MenuController(estudianteFrame);
 
-        } else {
-
-            loginView.mostrarMensaje(
-                    "Error",
-                    "Usuario o contraseña incorrecto"
-            );
+            estudianteFrame.show();
         }
-    }
 
+        loginView.close();
+    }
     private void procesarRegistro() {
         String nombre = loginView.getRegUser();
         String correo = loginView.getRegEmail();

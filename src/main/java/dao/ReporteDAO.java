@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.time.LocalDateTime;
-
 import model.*;
 public class ReporteDAO {
     public boolean registrar(Reporte reporte, Restaurante restaurante){
@@ -197,5 +196,71 @@ public class ReporteDAO {
             excepcion.printStackTrace();
         }
         return tiempos;
+    }
+    public ArrayList<Reporte> obtenerPorRestaurante(String nombreRestaurante)
+        throws SQLException {
+        ArrayList<Reporte> reportes = new ArrayList<>();
+        String sql = """
+        SELECT r.id_reporte, r.id_usuario,
+               u.nombre AS nombre_usuario,
+               u.correo, u.tipo,
+               r.cantidad_personas,
+               r.tiempo_espera, r.fecha_hora
+        FROM reporte r
+        INNER JOIN usuario u
+            ON r.id_usuario = u.id_usuario
+        INNER JOIN restaurante rest
+            ON r.id_restaurante = rest.id_restaurante
+        WHERE rest.nombre = ?
+        ORDER BY r.fecha_hora DESC
+        """;
+
+        try (Connection connection = Databaseconnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, nombreRestaurante);
+            try (ResultSet resultado = statement.executeQuery()) {
+                while (resultado.next()) {
+                    Usuario usuario = new Usuario(
+                            resultado.getInt("id_usuario"),
+                            resultado.getString("nombre_usuario"),
+                            resultado.getString("correo"),
+                            null,
+                            TipoUsuario.valueOf(resultado.getString("tipo"))
+                    );
+                    Reporte reporte = new Reporte(
+                            usuario,
+                            nombreRestaurante,
+                            resultado.getInt("cantidad_personas"),
+                            resultado.getInt("tiempo_espera"),
+                            resultado.getTimestamp("fecha_hora").toLocalDateTime()
+                    );
+                    reporte.setIdReporte(resultado.getInt("id_reporte"));
+                    reportes.add(reporte);
+                }
+            }
+        }
+        return reportes;
+    }
+    public boolean eliminar(int idReporte, String nombreRestaurante)
+            throws SQLException {
+
+        String sql = """
+                DELETE FROM reporte
+                WHERE id_reporte = ?
+                AND id_restaurante IN (
+                    SELECT id_restaurante
+                    FROM restaurante
+                    WHERE nombre = ?
+                )
+                """;
+
+        try (Connection connection = Databaseconnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, idReporte);
+            statement.setString(2, nombreRestaurante);
+
+            return statement.executeUpdate() == 1;
+        }
     }
 }
